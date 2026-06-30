@@ -1,6 +1,6 @@
 package com.restfullReads.tests;
 
-import com.restfullReads.assertion.BookAssertion;
+import com.restfullReads.assertions.BookAssertion;
 import com.restfullReads.base.BaseTest;
 import com.restfullReads.models.BookQueryParams;
 import com.restfullReads.services.BookService;

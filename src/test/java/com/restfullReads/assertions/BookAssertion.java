@@ -1,4 +1,4 @@
-package com.restfullReads.assertion;
+package com.restfullReads.assertions;
 
 import org.testng.Assert;
 
