@@ -3,20 +3,36 @@ package com.restfullReads.services;
 import com.restfullReads.config.ConfigManager;
 import com.restfullReads.constants.BookEndpoints;
 import com.restfullReads.models.BookQueryParams;
+import com.restfullReads.models.CreateBookRequest;
 import com.restfullReads.session.SessionManager;
-
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import lombok.var;
+import io.restassured.specification.RequestSpecification;
 
 import static io.restassured.RestAssured.given;
 
 public class BookService {
 
+    private RequestSpecification request() {
+
+        RequestSpecification request = given()
+                .baseUri(ConfigManager.getBaseUrl());
+
+        String token = SessionManager.getToken();
+
+        if (token != null) {
+            request.header(
+                    "Authorization",
+                    "Bearer " + token
+            );
+        }
+
+        return request;
+    }
+
     public Response getBooks(BookQueryParams queryParams) {
 
-        var request = given()
-                .baseUri(ConfigManager.getBaseUrl())
-                .header("Authorization", "Bearer " + SessionManager.getToken());
+        RequestSpecification request = request();
 
         if (queryParams != null) {
             request.queryParams(queryParams.toMap());
@@ -33,18 +49,15 @@ public class BookService {
 
     public Response getBookById(String bookId) {
 
-        return given()
-                .baseUri(ConfigManager.getBaseUrl())
-                .header("Authorization", "Bearer " + SessionManager.getToken())
+        return request()
                 .when()
                 .get(BookEndpoints.getBookById(bookId));
     }
 
-    public Response createBook(Object bookRequest) {
+    public Response createBook(CreateBookRequest bookRequest) {
 
-        return given()
-                .baseUri(ConfigManager.getBaseUrl())
-                .header("Authorization", "Bearer " + SessionManager.getToken())
+        return request()
+                .contentType(ContentType.JSON)
                 .body(bookRequest)
                 .when()
                 .post(BookEndpoints.BASE);
@@ -52,9 +65,7 @@ public class BookService {
 
     public Response deleteBook(String bookId) {
 
-        return given()
-                .baseUri(ConfigManager.getBaseUrl())
-                .header("Authorization", "Bearer " + SessionManager.getToken())
+        return request()
                 .when()
                 .delete(BookEndpoints.getBookById(bookId));
     }

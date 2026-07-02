@@ -22,11 +22,11 @@ public final class SessionManager {
 
         String token = ACTIVE_TOKEN.get();
 
-        if (token == null || token.isEmpty()) {
-            throw new RuntimeException(
-                    "No active session found. Call SessionManager.use() first."
-            );
-        }
+//        if (token == null || token.isEmpty()) {
+//            throw new RuntimeException(
+//                    "No active session found. Call SessionManager.use() first."
+//            );
+//        }
 
         return token;
     }

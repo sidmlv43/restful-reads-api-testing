@@ -1,7 +1,9 @@
 package com.restfullReads.tests;
 
+import com.restfullReads.annotations.UseUser;
 import com.restfullReads.assertions.BookAssertion;
 import com.restfullReads.base.BaseTest;
+import com.restfullReads.enums.UserType;
 import com.restfullReads.models.BookQueryParams;
 import com.restfullReads.services.BookService;
 import io.restassured.response.Response;
@@ -22,6 +24,7 @@ public class BookServiceTest extends BaseTest {
 
 
     @Test
+    @UseUser(UserType.ADMIN)
     public void getAllBooksByQueryTest() {
         BookQueryParams bookQueryParams = BookQueryParams.builder()
                 .page(1)

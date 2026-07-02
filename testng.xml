@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="All Test Suite">
+    <listeners>
+        <listener class-name="com.restfullReads.listeners.UserContextListener" />
+    </listeners>
+    <test verbose="2" preserve-order="true"
+          name="/Users/siddharth.malviya/Learnings/restful-reads-api-automation/src/test/java/com/restfullReads/tests/BookServiceTest.java">
+        <classes>
+            <class name="com.restfullReads.tests.BookServiceTest">
+                <methods>
+                    <include name="getAllBooksByQueryTest"/>
+                    <include name="testBookQueryParamGreaterThanAndEqualsToFilterWorks"/>
+                    <include name="testBookQueryParamLessThanAndEqualsToFilterWorks"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    <test verbose="2" preserve-order="true"
+          name="/Users/siddharth.malviya/Learnings/restful-reads-api-automation/src/test/java/com/restfullReads/tests/AuthTest.java">
+        <classes>
+            <class name="com.restfullReads.tests.AuthTest">
+                <methods>
+                    <include name="testSuccessfulLogin"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>
