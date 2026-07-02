@@ -9,6 +9,7 @@ import io.restassured.response.Response;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static com.restfullReads.assertions.AuthAssertions.assertTokenIsValidJWT;
 import static com.restfullReads.assertions.AuthAssertions.assertTokenValid;
 
 public class AuthTest extends BaseTest {
@@ -28,9 +29,10 @@ public class AuthTest extends BaseTest {
                 .email("riya@test.com")
                 .password("pass1234")
                 .build();
-        authService.login(loginRequest);
+        String token = authService.login(loginRequest);
 
-        assertTokenValid(SessionManager.getToken());
+        assertTokenValid(token);
+        assertTokenIsValidJWT(token);
 
     }
 }

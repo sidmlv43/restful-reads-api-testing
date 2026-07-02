@@ -1,23 +1,41 @@
 package com.restfullReads.base;
 
 import com.restfullReads.config.RestAssuredConfig;
-import com.restfullReads.session.SessionManager;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeClass;
+import com.restfullReads.enums.UserType;
+import com.restfullReads.models.LoginRequest;
+import com.restfullReads.services.AuthService;
+import com.restfullReads.session.TokenManager;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeTest;
 
 public class BaseTest {
+
+    @BeforeSuite
+    public void initializeUsers() {
+
+        AuthService authService = new AuthService();
+
+        String adminToken = authService.login(
+                LoginRequest.builder()
+                        .email("admin@example.com")
+                        .password("adminpass")
+                        .build()
+        );
+
+        TokenManager.register(UserType.ADMIN, adminToken);
+
+        String customerToken = authService.login(
+                LoginRequest.builder()
+                        .email("cust1@example.com")
+                        .password("custpass")
+                        .build()
+        );
+
+        TokenManager.register(UserType.CUSTOMER, customerToken);
+    }
 
     @BeforeTest
     public void setup() {
         RestAssuredConfig.enableLogging();
     }
-
-    @AfterMethod
-    public void teardown() {
-        // clears the auth tokens
-        SessionManager.clear();
-    }
-
 }

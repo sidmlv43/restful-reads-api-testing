@@ -1,37 +1,37 @@
 package com.restfullReads.session;
 
+import com.restfullReads.enums.UserType;
 import lombok.Getter;
 import lombok.Setter;
 
+public final class SessionManager {
 
-public class SessionManager {
-    @Setter
-    @Getter
-    private static final ThreadLocal<String> token = new ThreadLocal<>();
+    private static final ThreadLocal<String> ACTIVE_TOKEN =
+            new ThreadLocal<>();
 
-    private SessionManager() {
+    private SessionManager() {}
 
+    public static void use(UserType userType) {
+
+        String token = TokenManager.get(userType);
+
+        ACTIVE_TOKEN.set(token);
     }
-
-
-    public static void setToken(String authToken) {
-        token.set(authToken);
-    }
-
-
 
     public static String getToken() {
-        String value = token.get();
-        if (value == null) {
-            throw new RuntimeException("No token available for this thread. Please login first.");
+
+        String token = ACTIVE_TOKEN.get();
+
+        if (token == null || token.isEmpty()) {
+            throw new RuntimeException(
+                    "No active session found. Call SessionManager.use() first."
+            );
         }
-        return value;
+
+        return token;
     }
-
-
 
     public static void clear() {
-        token.remove();
+        ACTIVE_TOKEN.remove();
     }
-
 }

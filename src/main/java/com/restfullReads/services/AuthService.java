@@ -26,7 +26,6 @@ public class AuthService {
                         .extract()
                         .as(AuthToken.class);
 
-        SessionManager.setToken(authToken.getToken());
 
         return authToken.getToken();
     }
@@ -44,10 +43,6 @@ public class AuthService {
                         .statusCode(201)
                         .extract()
                         .as(AuthToken.class);
-
-        SessionManager.setToken(authToken.getToken());
-
-
 
         return authToken.getToken();
     }
