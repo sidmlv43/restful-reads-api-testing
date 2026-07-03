@@ -2,6 +2,7 @@ package com.restfullReads.base;
 
 import com.restfullReads.config.RestAssuredConfig;
 import com.restfullReads.enums.UserType;
+import com.restfullReads.listeners.ExtentTestListener;
 import com.restfullReads.listeners.UserContextListener;
 import com.restfullReads.models.LoginRequest;
 import com.restfullReads.services.AuthService;
@@ -12,7 +13,8 @@ import org.testng.annotations.Listeners;
 
 
 @Listeners({
-        UserContextListener.class
+        UserContextListener.class,
+        ExtentTestListener.class
 })
 public class BaseTest {
 

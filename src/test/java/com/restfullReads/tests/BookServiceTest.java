@@ -1,6 +1,8 @@
 package com.restfullReads.tests;
 
+import com.restfullReads.annotations.Author;
 import com.restfullReads.annotations.UseUser;
+import com.restfullReads.annotations.ZephyrTest;
 import com.restfullReads.assertions.BookAssertion;
 import com.restfullReads.base.BaseTest;
 import com.restfullReads.data.BookDataFactory;
@@ -27,7 +29,9 @@ public class BookServiceTest extends BaseTest {
     }
 
 
-    @Test
+    @Test(description = "Test Get all books by query")
+    @Author("Siddharth Malviya")
+    @ZephyrTest(value = "BOOKS_101")
     @UseUser(UserType.ADMIN)
     public void getAllBooksByQueryTest() {
         BookQueryParams bookQueryParams = BookQueryParams.builder()
@@ -47,7 +51,9 @@ public class BookServiceTest extends BaseTest {
     }
 
 
-    @Test(testName = "Test Price filter works properly")
+    @Test(description = "Test Price filter works properly")
+    @Author("Siddharth Malviya")
+    @ZephyrTest(value = "BOOKS_102")
     public void testBookQueryParamGreaterThanAndEqualsToFilterWorks() {
 
         BookQueryParams queryParams = BookQueryParams.builder()
@@ -68,6 +74,8 @@ public class BookServiceTest extends BaseTest {
 
 
     @Test(testName = "Test Price filter works properly")
+    @Author("Siddharth Malviya")
+    @ZephyrTest(value = "BOOKS_103")
     public void testBookQueryParamLessThanAndEqualsToFilterWorks() {
 
         BookQueryParams queryParams = BookQueryParams.builder()
@@ -88,6 +96,8 @@ public class BookServiceTest extends BaseTest {
 
 
     @Test(description = "Test Customer cannot add a new book")
+    @Author("Siddharth Malviya")
+    @ZephyrTest(value = "BOOKS_104")
     @UseUser(UserType.CUSTOMER)
     public void testCustomerCannotAddBook() {
         bookService.createBook(BookDataFactory.createBook())
@@ -97,6 +107,8 @@ public class BookServiceTest extends BaseTest {
     }
 
     @Test(description = "Test Admin can add a new book")
+    @Author("Riya Malviya")
+    @ZephyrTest(value = "BOOKS_105")
     @UseUser(UserType.ADMIN)
     public void testAdminCanCreateBook() {
         Response bookResponse = bookService.createBook(BookDataFactory.createBook());
@@ -113,6 +125,8 @@ public class BookServiceTest extends BaseTest {
         System.out.println(this.createdBookId);
     }
 
+    @Author("Riya Malviya")
+    @ZephyrTest(value = "BOOKS_106")
     @Test(
             description = "Test Admin can update the created book",
             dependsOnMethods = "testAdminCanCreateBook"

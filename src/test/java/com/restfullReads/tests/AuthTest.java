@@ -1,5 +1,7 @@
 package com.restfullReads.tests;
 
+import com.restfullReads.annotations.Author;
+import com.restfullReads.annotations.ZephyrTest;
 import com.restfullReads.base.BaseTest;
 import com.restfullReads.models.LoginRequest;
 import com.restfullReads.services.AuthService;
@@ -19,6 +21,8 @@ public class AuthTest extends BaseTest {
     }
 
 
+    @Author("Riya Malviya")
+    @ZephyrTest(value = "AUTH_101")
     @Test(testName = "test user successful login")
     public void testSuccessfulLogin() {
         LoginRequest loginRequest = LoginRequest.builder()
