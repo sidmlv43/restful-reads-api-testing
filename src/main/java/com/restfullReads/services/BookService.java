@@ -69,4 +69,12 @@ public class BookService {
                 .when()
                 .delete(BookEndpoints.getBookById(bookId));
     }
+
+    public Response updateBook(String id, Object updatePatch) {
+        return request()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(updatePatch)
+                .patch(BookEndpoints.getBookById(id));
+    }
 }
