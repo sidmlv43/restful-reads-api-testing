@@ -14,6 +14,11 @@ public class UserContextListener implements IInvokedMethodListener {
 
     @Override
     public void beforeInvocation(IInvokedMethod method, ITestResult testResult) {
+
+        if(!method.isTestMethod()) {
+            return;
+        }
+
         Method testMethod = method.getTestMethod()
                 .getConstructorOrMethod()
                 .getMethod();

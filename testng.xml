@@ -4,7 +4,7 @@
     <listeners>
         <listener class-name="com.restfullReads.listeners.UserContextListener" />
     </listeners>
-    <test verbose="2" preserve-order="true"
+    <test verbose="2"  thread-count="5" parallel="classes"
           name="/Users/siddharth.malviya/Learnings/restful-reads-api-automation/src/test/java/com/restfullReads/tests/BookServiceTest.java">
         <classes>
             <class name="com.restfullReads.tests.BookServiceTest">
@@ -16,7 +16,7 @@
             </class>
         </classes>
     </test>
-    <test verbose="2" preserve-order="true"
+    <test verbose="2"
           name="/Users/siddharth.malviya/Learnings/restful-reads-api-automation/src/test/java/com/restfullReads/tests/AuthTest.java">
         <classes>
             <class name="com.restfullReads.tests.AuthTest">
