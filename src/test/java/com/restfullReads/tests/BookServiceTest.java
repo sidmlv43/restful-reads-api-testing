@@ -3,6 +3,7 @@ package com.restfullReads.tests;
 import com.restfullReads.annotations.UseUser;
 import com.restfullReads.assertions.BookAssertion;
 import com.restfullReads.base.BaseTest;
+import com.restfullReads.data.BookDataFactory;
 import com.restfullReads.enums.UserType;
 import com.restfullReads.models.BookQueryParams;
 import com.restfullReads.services.BookService;
@@ -83,5 +84,13 @@ public class BookServiceTest extends BaseTest {
     }
 
 
+    @Test(description = "Test Customer cannot add a new book")
+    @UseUser(UserType.CUSTOMER)
+    public void testCustomerCannotAddBook() {
+        bookService.createBook(BookDataFactory.createBook())
+                .then()
+                .statusCode(403);
+
+    }
 
 }

@@ -12,6 +12,7 @@
                     <include name="getAllBooksByQueryTest"/>
                     <include name="testBookQueryParamGreaterThanAndEqualsToFilterWorks"/>
                     <include name="testBookQueryParamLessThanAndEqualsToFilterWorks"/>
+                    <include name="testCustomerCannotAddBook" />
                 </methods>
             </class>
         </classes>

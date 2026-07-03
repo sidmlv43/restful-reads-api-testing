@@ -15,7 +15,10 @@ public class CreateBookRequest {
 
     private String author;
 
+    private String genre;
+
     private Double price;
 
-    private Integer stock;
+
+
 }
