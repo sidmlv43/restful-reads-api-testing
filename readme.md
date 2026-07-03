@@ -1,193 +1,345 @@
 # Restful Reads API Automation Framework
 
-A scalable API automation framework built using Java, TestNG, Rest Assured, and Lombok for testing the Restful Reads application.
+A scalable API automation framework built using Java, TestNG, Rest Assured, Lombok, and Extent Reports for testing the Restful Reads application.
+
+The primary focus of this framework is not only API automation but also learning and applying automation architecture, framework design, reporting, maintainability, scalability, and engineering practices expected from a Senior SDET.
 
 ---
 
-## Features
-
-- Rest Assured based API testing
-- TestNG test execution
-- Environment-aware configuration management
-- Centralized endpoint management
-- Authentication service abstraction
-- Reusable request/response models
-- Token caching and session management
-- Thread-safe execution support
-- Assertion layer for business validations
-- Query parameter builder support
-- Extent Reports integration (In Progress)
-- Parallel execution ready
-
----
-
-## Tech Stack
+# Tech Stack
 
 - Java 17
+- Maven
 - TestNG
 - Rest Assured
-- Lombok
-- Maven
 - Jackson
-- Extent Reports (Upcoming)
+- Lombok
+- Extent Reports
+- Java Faker
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```text
 src
 ├── main
-│   ├── config
-│   ├── constants
-│   ├── enums
-│   ├── models
-│   ├── services
-│   ├── session
-│   └── utils
+│   └── java
+│       └── com.restfullReads
+│           ├── annotations
+│           │   ├── Author
+│           │   ├── UseUser
+│           │   └── ZephyrTest
+│           │
+│           ├── config
+│           ├── constants
+│           ├── enums
+│           ├── models
+│           ├── services
+│           └── session
 │
-├── test
-│   ├── assertions
-│   ├── base
-│   ├── tests
-│   └── reports
+└── test
+    └── java
+        └── com.restfullReads
+│           ├── assertions
+│           ├── base
+│           ├── data
+│           ├── listeners
+│           │   ├── UserContextListener
+│           │   └── ExtentTestListener
+│           │
+│           ├── reporting
+│           │   ├── ExtentManager
+│           │   └── ExtentTestManager
+│           │
+│           └── tests
 ```
 
 ---
 
-## Framework Architecture
+# Framework Architecture
 
 ```text
 Tests
-  │
-  ▼
+    │
+    ▼
 Assertions
-  │
-  ▼
+    │
+    ▼
 Services
-  │
-  ▼
+    │
+    ▼
 Endpoints
-  │
-  ▼
+    │
+    ▼
 Rest Assured
-  │
-  ▼
+    │
+    ▼
 REST API
 ```
 
 ---
 
-## Authentication Flow
+# Configuration Management
 
-The framework authenticates predefined users once at suite startup and stores their tokens for reuse.
+Configuration values are managed centrally using `ConfigManager`.
 
-```text
-@BeforeSuite
-   │
-   ├── Login as Admin
-   ├── Login as Customer
-   │
-   ▼
-TokenManager
-   │
-   ▼
-Tests activate required user
-   │
-   ▼
-SessionManager
+Example:
+
+```java
+ConfigManager.getBaseUrl();
+```
+
+Benefits:
+
+- Single source of truth
+- Easy environment switching
+- Better maintainability
+
+---
+
+# Endpoint Management
+
+API endpoints are centralized into constant classes.
+
+Example:
+
+```java
+AuthEndPoints.LOGIN
+AuthEndPoints.REGISTER
+
+BookEndpoints.BASE
+```
+
+Benefits:
+
+- No hardcoded URLs
+- Easier maintenance
+- Better readability
+
+---
+
+# Authentication
+
+## AuthService
+
+Provides methods for:
+
+- Login
+- Registration
+
+### Login Example
+
+```java
+String token =
+        authService.login(
+                LoginRequest.builder()
+                        .email("admin@example.com")
+                        .password("password")
+                        .build()
+        );
 ```
 
 ---
 
-## Session Management
-
-### TokenManager
-
-Stores JWT tokens for known user types.
+## Register Example
 
 ```java
-TokenManager.register(UserType.ADMIN, adminToken);
-TokenManager.register(UserType.CUSTOMER, customerToken);
+String token =
+        authService.register(
+                RegisterRequest.builder()
+                        .name("John Doe")
+                        .email("john@example.com")
+                        .password("password")
+                        .build()
+        );
 ```
 
-### SessionManager
+---
 
-Maintains the active user session for the current thread.
+# Authentication Models
+
+## LoginRequest
+
+```java
+LoginRequest.builder()
+        .email("user@example.com")
+        .password("password")
+        .build();
+```
+
+---
+
+## RegisterRequest
+
+```java
+RegisterRequest.builder()
+        .name("John Doe")
+        .email("john@example.com")
+        .password("password")
+        .build();
+```
+
+---
+
+## AuthToken
+
+Represents JWT authentication responses.
+
+Example:
+
+```json
+{
+  "token": "<jwt-token>"
+}
+```
+
+---
+
+# Role-Based Authentication
+
+## UserType
+
+```java
+public enum UserType {
+
+    ADMIN,
+    CUSTOMER
+
+}
+```
+
+---
+
+# TokenManager
+
+Stores tokens associated with known user types.
+
+Example:
+
+```java
+TokenManager.register(
+        UserType.ADMIN,
+        adminToken
+);
+
+TokenManager.register(
+        UserType.CUSTOMER,
+        customerToken
+);
+```
+
+Benefits:
+
+- Login once per suite
+- Faster execution
+- Reduced API calls
+
+---
+
+# SessionManager
+
+Maintains the active user token for the current thread.
+
+Example:
 
 ```java
 SessionManager.use(UserType.ADMIN);
 ```
 
-Services automatically pick up the active token:
+Authentication headers are automatically added when a user session is active.
+
+The implementation uses:
 
 ```java
-SessionManager.getToken();
+ThreadLocal
+```
+
+to support future parallel execution.
+
+---
+
+# Authentication Flow
+
+```text
+@BeforeSuite
+        │
+        ▼
+Authenticate Admin
+        │
+        ▼
+TokenManager
+        │
+        ▼
+Authenticate Customer
+        │
+        ▼
+TokenManager
+        │
+        ▼
+Execute Tests
+        │
+        ▼
+@UseUser(...)
+        │
+        ▼
+SessionManager
+        │
+        ▼
+API Request
 ```
 
 ---
 
-## User Types
+# User Context Annotation
 
-```java
-public enum UserType {
-    ADMIN,
-    CUSTOMER
-}
-```
+## @UseUser
 
----
-
-## Endpoint Management
-
-Endpoints are maintained centrally.
+Specifies which user should execute a test.
 
 Example:
 
 ```java
-public class AuthEndpoints {
-
-    public static final String LOGIN = "/api/auth/login";
-    public static final String REGISTER = "/api/auth/register";
+@Test
+@UseUser(UserType.ADMIN)
+public void createBookTest() {
 
 }
 ```
 
-This avoids hardcoded URLs inside service classes.
+Benefits:
+
+- Declarative authentication
+- Cleaner tests
+- No manual token handling
 
 ---
 
-## Services
+# Anonymous Requests
 
-### AuthService
+Authentication is optional.
 
-Supports:
-
-- Login
-- Registration
-
-Example:
+If no user context is specified:
 
 ```java
-String token = authService.login(
-        LoginRequest.builder()
-                .email("admin@example.com")
-                .password("adminpass")
-                .build()
-);
+bookService.getBooks();
 ```
+
+The request executes without an Authorization header.
+
+This enables:
+
+- Public endpoint testing
+- Negative authorization testing
+- Unauthorized user validation
 
 ---
 
-### BookService
+# Book Models
 
-Supports:
+## BookQueryParams
 
-- Fetch books
-- Filter books
-- Pagination
-- Sorting
-- Advanced query parameters
+Builder-based query parameter construction.
 
 Example:
 
@@ -196,32 +348,16 @@ BookQueryParams queryParams =
         BookQueryParams.builder()
                 .page(1)
                 .limit(10)
-                .author("Tolkien")
-                .build();
-```
-
----
-
-## Query Parameter Builder
-
-`BookQueryParams` provides a clean and reusable way to construct query parameters.
-
-Example:
-
-```java
-BookQueryParams queryParams =
-        BookQueryParams.builder()
-                .page(1)
-                .limit(10)
+                .author("Rick Riordan")
                 .sort("-createdAt")
                 .build();
 ```
 
 ---
 
-### Advanced Filters
+## Advanced Filtering
 
-Supports operator-based filters.
+Supports dynamic operator-based filters.
 
 Example:
 
@@ -231,7 +367,7 @@ BookQueryParams queryParams =
                 .filters(
                         Map.of(
                                 "price[gte]", 10,
-                                "price[lte]", 100
+                                "price[lte]", 50
                         )
                 )
                 .build();
@@ -246,14 +382,125 @@ Supported operators:
 
 ---
 
-## Assertions Layer
+## CreateBookRequest
+
+Represents book creation payload.
+
+Example:
+
+```java
+CreateBookRequest.builder()
+        .title("Clean Code")
+        .author("Robert Martin")
+        .genre("Programming")
+        .price(29.99)
+        .build();
+```
+
+---
+
+## Book
+
+Represents book response payload returned by the API.
+
+Example:
+
+```java
+Book book =
+        response.as(Book.class);
+```
+
+---
+
+# Test Data Management
+
+## BookDataFactory
+
+Uses Java Faker to generate realistic test data.
+
+Example:
+
+```java
+CreateBookRequest book =
+        BookDataFactory.createBook();
+```
+
+Benefits:
+
+- Reduces hardcoded test data
+- Improves test reliability
+- Better coverage
+
+---
+
+# Services
+
+## BookService
+
+Supports:
+
+### Get Books
+
+```java
+bookService.getBooks();
+```
+
+---
+
+### Get Books Using Filters
+
+```java
+bookService.getBooks(queryParams);
+```
+
+---
+
+### Get Book By ID
+
+```java
+bookService.getBookById(bookId);
+```
+
+---
+
+### Create Book
+
+```java
+bookService.createBook(bookRequest);
+```
+
+---
+
+### Update Book
+
+```java
+bookService.updateBook(
+        bookId,
+        Map.of(
+                "price",
+                44.44
+        )
+);
+```
+
+---
+
+### Delete Book
+
+```java
+bookService.deleteBook(bookId);
+```
+
+---
+
+# Assertions Layer
 
 Business assertions are separated from tests.
 
 Example:
 
 ```java
-BookAssertion.assertValueGreaterThanEqualsTo(
+BookAssertion.assertValueGreaterThanOrEqualsTo(
         prices,
         10
 );
@@ -261,154 +508,332 @@ BookAssertion.assertValueGreaterThanEqualsTo(
 
 Benefits:
 
-- Reusability
-- Cleaner test methods
-- Better maintainability
+- Better reuse
+- Cleaner tests
+- Easier maintenance
 
 ---
 
-## Example Test
+# Reporting
+
+## Extent Reports
+
+The framework integrates Extent Reports to generate detailed HTML execution reports.
+
+Generated Report:
+
+```text
+test-output/ExtentReport.html
+```
+
+The report captures:
+
+- Pass/Fail/Skip Status
+- Execution Time
+- Stack Traces
+- Categories
+- Test Metadata
+- Author Information
+- Zephyr Test References
+
+---
+
+## Reporting Architecture
+
+```text
+Test Execution
+        │
+        ▼
+ExtentTestListener
+        │
+        ▼
+ExtentManager
+        │
+        ▼
+ExtentTestManager
+        │
+        ▼
+Extent Report
+```
+
+---
+
+## ExtentManager
+
+Maintains a singleton `ExtentReports` instance.
+
+Responsible for:
+
+- Reporter initialization
+- Report configuration
+- Report flushing
+
+---
+
+## ExtentTestManager
+
+Provides thread-safe access to:
+
+```java
+ExtentTest
+```
+
+using:
+
+```java
+ThreadLocal<ExtentTest>
+```
+
+This ensures compatibility with future parallel execution.
+
+---
+
+# Test Metadata
+
+The framework supports metadata annotations to improve traceability and reporting.
+
+---
+
+## @Author
+
+Provides ownership information.
+
+Example:
 
 ```java
 @Test
-public void testPriceFilterWorks() {
+@Author("Siddharth Malviya")
+public void createBookTest() {
 
-    SessionManager.use(UserType.CUSTOMER);
+}
+```
 
-    BookQueryParams queryParams =
-            BookQueryParams.builder()
-                    .filters(
-                            Map.of(
-                                    "price[gte]", 10
-                            )
-                    )
-                    .build();
+Appears in the report under:
 
-    Response response =
-            bookService.getBooks(queryParams);
+```text
+Author
+```
 
-    List<Double> prices =
-            response.jsonPath()
-                    .getList(
-                            "results.price",
-                            Double.class
-                    );
+---
 
-    BookAssertion.assertValueGreaterThanEqualsTo(
-            prices,
-            10
-    );
+## @ZephyrTest
+
+Associates an automated test with an external test case.
+
+Example:
+
+```java
+@Test
+@ZephyrTest("RR-123")
+public void createBookTest() {
+
+}
+```
+
+Appears in the report under:
+
+```text
+Zephyr Test Case
+```
+
+This is designed for future integration with:
+
+- Zephyr
+- Jira
+- Azure Test Plans
+
+---
+
+# Test Categorization
+
+The framework uses native TestNG groups.
+
+Example:
+
+```java
+@Test(
+        groups = {
+                "smoke",
+                "critical",
+                "books"
+        }
+)
+```
+
+Groups automatically appear as report categories.
+
+Example:
+
+```text
+Smoke
+Critical
+Books
+```
+
+---
+
+# Example Test
+
+```java
+@Test(
+        description = "Admin can create a new book",
+        groups = {
+                "smoke",
+                "critical",
+                "books"
+        }
+)
+@Author("Siddharth Malviya")
+@ZephyrTest("RR-123")
+@UseUser(UserType.ADMIN)
+public void testAdminCanCreateBook() {
+
+    CreateBookRequest request =
+            BookDataFactory.createBook();
+
+    bookService.createBook(request)
+            .then()
+            .statusCode(201);
 }
 ```
 
 ---
 
-## Configuration
+# Current Capabilities
 
-Configuration values are managed via property files.
+✅ Configuration Management
 
-Example:
+✅ Endpoint Management
 
-```properties
-base.url=http://localhost:3000
-timeout=5000
-```
+✅ AuthService
 
-Accessed through:
+✅ Login & Register DTOs
 
-```java
-ConfigManager.getBaseUrl();
-```
+✅ AuthToken DTO
 
----
+✅ UserType Enum
 
-## Logging
+✅ TokenManager
 
-Request and response logging is configured globally through Rest Assured filters.
+✅ Thread-Safe SessionManager
 
-Benefits:
+✅ Role-Based Authentication
 
-- Centralized logging
-- Consistent debugging experience
-- No need for repetitive `.log().all()` statements
+✅ @UseUser Annotation
 
----
+✅ BookQueryParams Builder
 
-## Planned Enhancements
+✅ Dynamic Query Filtering
 
-### Reporting
+✅ CreateBookRequest DTO
 
-- Extent Reports
-- Custom TestNG Listeners
-- Request / Response Attachments
-- Execution Summary Dashboard
+✅ Book DTO
 
-### Authentication
+✅ BookService
 
-- JWT Expiration Handling
-- Token Auto Refresh
-- Session Context Improvements
+✅ CRUD Operations
 
-### API Coverage
+✅ Java Faker Support
 
-- Books
-- Cart
-- Orders
-- Ratings
-- Addresses
-- Authentication
+✅ Assertion Layer
 
-### Advanced Rest Assured Topics
+✅ Extent Reports
 
-- JSON Schema Validation
-- Data Providers
-- Response Time Validation
-- Workflow Testing
-- Parallel Execution
-- API Contract Validation
+✅ @Author Annotation
+
+✅ @ZephyrTest Annotation
+
+✅ Test Categorization
+
+✅ Anonymous Request Support
 
 ---
 
-## Learning Objectives
+# Roadmap
 
-This framework is being built with a strong focus on learning and applying:
+## Reporting
 
+✅ Extent Reports
+
+✅ Author Metadata
+
+✅ Zephyr Metadata
+
+⬜ Request Logging
+
+⬜ Response Logging
+
+⬜ Environment Information
+
+⬜ Custom Dashboard
+
+⬜ Execution Metrics
+
+---
+
+## Authentication
+
+⬜ JWT Expiration Detection
+
+⬜ Automatic Token Refresh
+
+⬜ Advanced Session Management
+
+---
+
+## API Coverage
+
+⬜ Cart Service
+
+⬜ Order Service
+
+⬜ Rating Service
+
+⬜ Address Service
+
+---
+
+## CI/CD
+
+⬜ Dockerization
+
+⬜ Jenkins Integration
+
+⬜ GitHub Actions
+
+⬜ Azure DevOps
+
+---
+
+## Advanced Automation Topics
+
+⬜ Parallel Execution
+
+⬜ JSON Schema Validation
+
+⬜ Response Time Validation
+
+⬜ Workflow Automation
+
+⬜ End-to-End Business Flows
+
+---
+
+# Learning Objectives
+
+This framework is being developed to strengthen expertise in:
+
+- API Automation
 - Rest Assured
-- TestNG
-- API Design
 - Framework Design
 - Test Architecture
-- Thread Safety
 - Reporting
+- Session Management
 - Authentication Strategies
-- End-to-End API Workflows
-
----
-
-## Current Status
-
-### Implemented
-
-- Configuration Management
-- Endpoint Management
-- AuthService
-- Register & Login Models
-- TokenManager
-- SessionManager
-- BookQueryParams
-- Assertion Layer
-- Global Logging
-
-### In Progress
-
-- Extent Reports
-- TestNG Listeners
-
-### Planned
-
-- Cart Service
-- Order Service
-- Workflow Automation
-- JWT Refresh Support
-
----
+- TestNG Internals
+- Custom Annotations
+- Test Metadata
+- CI/CD
+- Docker
+- Automation Engineering
+- Senior SDET Practices
