@@ -11,5 +11,6 @@ public class BookEndpoints {
         return BASE + "/" + id;
     }
 
-    public static final String RATE_BOOK = "/api/books/%s/rate";
-}
+    public static String rateBook(String id) {
+        return BASE + "/" + id + "/rate";
+    }}
