@@ -146,7 +146,7 @@ public class BookServiceTest extends BaseTest {
     @ZephyrTest(value = "BOOKS_107")
     @Test(
             description = "Test Admin can delete the created book",
-            dependsOnMethods = "testAdminCanCreateBook"
+            dependsOnMethods = "testAdminCanUpdateBookDetails"
     )
     @UseUser(UserType.ADMIN)
     public void testAdminCanDeleteBook() {

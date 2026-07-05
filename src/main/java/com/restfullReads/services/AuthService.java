@@ -37,7 +37,7 @@ public class AuthService extends BaseService {
                         .when()
                         .post(AuthEndPoints.REGISTER)
                         .then()
-                        .statusCode(201)
+                        .statusCode(200)
                         .extract()
                         .as(AuthToken.class);
 

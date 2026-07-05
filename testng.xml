@@ -2,13 +2,13 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 <suite name="All Test Suite">
     <test verbose="2" preserve-order="true"
-          name="/Users/siddharth.malviya/Learnings/restful-reads-api-automation/src/test/java/com/restfullReads/tests/AuthTest.java">
+          name="Auth Tests">
         <classes>
             <class name="com.restfullReads.tests.AuthTest" />
         </classes>
     </test>
     <test verbose="2" preserve-order="true"
-          name="/Users/siddharth.malviya/Learnings/restful-reads-api-automation/src/test/java/com/restfullReads/tests/BookServiceTest.java">
+          name="Book Tests">
         <classes>
             <class name="com.restfullReads.tests.BookServiceTest" />
         </classes>

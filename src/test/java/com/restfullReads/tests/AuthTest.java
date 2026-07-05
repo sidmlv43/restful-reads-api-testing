@@ -26,8 +26,8 @@ public class AuthTest extends BaseTest {
     @Test(testName = "test user successful login")
     public void testSuccessfulLogin() {
         LoginRequest loginRequest = LoginRequest.builder()
-                .email("riya@test.com")
-                .password("pass1234")
+                .email("cust1@example.com")
+                .password("custpass")
                 .build();
         String token = authService.login(loginRequest);
 
