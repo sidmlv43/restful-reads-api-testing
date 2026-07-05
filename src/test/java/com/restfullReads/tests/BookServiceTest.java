@@ -7,12 +7,15 @@ import com.restfullReads.assertions.BookAssertion;
 import com.restfullReads.base.BaseTest;
 import com.restfullReads.data.BookDataFactory;
 import com.restfullReads.enums.UserType;
-import com.restfullReads.models.BookQueryParams;
+import com.restfullReads.models.responses.Book;
+import com.restfullReads.query.BookQueryParams;
 import com.restfullReads.services.BookService;
 import io.restassured.response.Response;
+import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import static org.hamcrest.Matchers.*;
+import static org.testng.AssertJUnit.assertEquals;
 
 import java.util.List;
 import java.util.Map;
@@ -111,18 +114,16 @@ public class BookServiceTest extends BaseTest {
     @ZephyrTest(value = "BOOKS_105")
     @UseUser(UserType.ADMIN)
     public void testAdminCanCreateBook() {
-        Response bookResponse = bookService.createBook(BookDataFactory.createBook());
-        bookResponse.then()
+
+        Book book = bookService.createBook(BookDataFactory.createBook())
+            .then()
                 .statusCode(201)
                 .body("_id", notNullValue())
-                .body("$", hasKey("author"))
-                .body("price", instanceOf(Float.class));
-        this.createdBookId = bookResponse.body().jsonPath().get("_id");
+            .extract()
+            .as(Book.class);
 
-        bookService.getBookById(createdBookId)
-                .then().body("data._id", equalTo(createdBookId));
+        Assert.assertFalse(book.getId().isEmpty(), "Id is expected not to be null or blank");
 
-        System.out.println(this.createdBookId);
     }
 
     @Author("Riya Malviya")

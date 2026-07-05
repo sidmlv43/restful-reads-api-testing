@@ -1,7 +1,7 @@
 package com.restfullReads.data;
 
 import com.github.javafaker.Faker;
-import com.restfullReads.models.CreateBookRequest;
+import com.restfullReads.models.requests.CreateBookRequest;
 
 public class BookDataFactory {
 

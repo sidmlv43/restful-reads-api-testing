@@ -1,15 +1,17 @@
-package com.restfullReads.models;
+package com.restfullReads.models.requests;
+
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Getter
 @Builder
-@AllArgsConstructor
+@Getter
 @NoArgsConstructor
-public class LoginRequest {
+@AllArgsConstructor
+public class User {
+    private String name;
     private String email;
     private String password;
 }

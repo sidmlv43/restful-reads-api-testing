@@ -2,8 +2,8 @@ package com.restfullReads.services;
 
 import com.restfullReads.config.ConfigManager;
 import com.restfullReads.constants.BookEndpoints;
-import com.restfullReads.models.BookQueryParams;
-import com.restfullReads.models.CreateBookRequest;
+import com.restfullReads.query.BookQueryParams;
+import com.restfullReads.models.requests.CreateBookRequest;
 import com.restfullReads.session.SessionManager;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;

@@ -4,7 +4,7 @@ import com.restfullReads.config.RestAssuredConfig;
 import com.restfullReads.enums.UserType;
 import com.restfullReads.listeners.ExtentTestListener;
 import com.restfullReads.listeners.UserContextListener;
-import com.restfullReads.models.LoginRequest;
+import com.restfullReads.models.requests.LoginRequest;
 import com.restfullReads.services.AuthService;
 import com.restfullReads.session.TokenManager;
 import org.testng.annotations.BeforeSuite;

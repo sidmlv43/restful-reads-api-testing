@@ -1,4 +1,4 @@
-package com.restfullReads.models;
+package com.restfullReads.models.responses;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -26,4 +26,6 @@ public class Book {
     private String createdAt;
 
     private String updatedAt;
+
+    private String __v;
 }

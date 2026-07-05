@@ -2,10 +2,9 @@ package com.restfullReads.services;
 
 import com.restfullReads.config.ConfigManager;
 import com.restfullReads.constants.AuthEndPoints;
-import com.restfullReads.models.AuthToken;
-import com.restfullReads.models.LoginRequest;
-import com.restfullReads.models.RegisterRequest;
-import com.restfullReads.session.SessionManager;
+import com.restfullReads.models.responses.AuthToken;
+import com.restfullReads.models.requests.LoginRequest;
+import com.restfullReads.models.requests.RegisterRequest;
 import io.restassured.http.ContentType;
 
 import static io.restassured.RestAssured.given;

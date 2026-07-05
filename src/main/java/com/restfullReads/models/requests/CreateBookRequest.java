@@ -1,4 +1,4 @@
-package com.restfullReads.models;
+package com.restfullReads.models.requests;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
