@@ -5,18 +5,17 @@ import com.restfullReads.constants.AuthEndPoints;
 import com.restfullReads.models.responses.AuthToken;
 import com.restfullReads.models.requests.LoginRequest;
 import com.restfullReads.models.requests.RegisterRequest;
+import com.restfullReads.services.base.BaseService;
 import io.restassured.http.ContentType;
 
 import static io.restassured.RestAssured.given;
 
-public class AuthService {
+public class AuthService extends BaseService {
 
     public String login(LoginRequest request) {
 
         AuthToken authToken =
-                given()
-                        .baseUri(ConfigManager.getBaseUrl())
-                        .contentType(ContentType.JSON)
+                request()
                         .body(request)
                         .when()
                         .post(AuthEndPoints.LOGIN)
@@ -33,8 +32,7 @@ public class AuthService {
     public String register(RegisterRequest request) {
 
         AuthToken authToken =
-                given()
-                        .baseUri(ConfigManager.getBaseUrl())
+                request()
                         .body(request)
                         .when()
                         .post(AuthEndPoints.REGISTER)

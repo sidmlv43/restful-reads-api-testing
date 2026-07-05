@@ -124,6 +124,7 @@ public class BookServiceTest extends BaseTest {
 
         Assert.assertFalse(book.getId().isEmpty(), "Id is expected not to be null or blank");
 
+        this.createdBookId = book.getId();
     }
 
     @Author("Riya Malviya")
@@ -140,5 +141,56 @@ public class BookServiceTest extends BaseTest {
                 .body("_id", notNullValue());
 
     }
+
+    @Author("Riya Malviya")
+    @ZephyrTest(value = "BOOKS_107")
+    @Test(
+            description = "Test Admin can delete the created book",
+            dependsOnMethods = "testAdminCanCreateBook"
+    )
+    @UseUser(UserType.ADMIN)
+    public void testAdminCanDeleteBook() {
+        Response deletedBook = bookService.deleteBook(createdBookId);
+        deletedBook.then()
+                .statusCode(200)
+               ;
+
+        bookService.
+                getBookById(createdBookId)
+                .then()
+                .statusCode(404)
+                .body("message", equalTo("Not found"))
+                .body("details", nullValue());
+    }
+
+
+    @Author("Riya Malviya")
+    @ZephyrTest(value = "BOOKS_108")
+    @Test(
+            description = "Test Admin can delete the created book",
+            dependsOnMethods = "testAdminCanCreateBook"
+    )
+    @UseUser(UserType.CUSTOMER)
+    public void testCustomerCannotDeleteABook() {
+        Response deletedBook = bookService.deleteBook(createdBookId);
+        deletedBook.then()
+                .statusCode(403)
+                .body("message", containsString("Forbidden"))
+                .time(lessThan(140L))
+        ;
+    }
+
+
+    @Author("Siddharth Malviya")
+    @ZephyrTest(value = "BOOKS_109")
+    @Test(description = "Anonymous User should not create a new book.")
+    public void anonymousUserCannotAddBookTest() {
+        bookService.createBook(BookDataFactory.createBook())
+                .then()
+                .statusCode(401)
+                .body("message", containsString("denied"))
+                .time(lessThan(200L));
+    }
+
 
 }

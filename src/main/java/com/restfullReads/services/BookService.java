@@ -1,34 +1,15 @@
 package com.restfullReads.services;
 
-import com.restfullReads.config.ConfigManager;
 import com.restfullReads.constants.BookEndpoints;
 import com.restfullReads.query.BookQueryParams;
 import com.restfullReads.models.requests.CreateBookRequest;
-import com.restfullReads.session.SessionManager;
-import io.restassured.http.ContentType;
+import com.restfullReads.services.base.BaseService;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
-import static io.restassured.RestAssured.given;
 
-public class BookService {
+public class BookService extends BaseService {
 
-    private RequestSpecification request() {
-
-        RequestSpecification request = given()
-                .baseUri(ConfigManager.getBaseUrl());
-
-        String token = SessionManager.getToken();
-
-        if (token != null) {
-            request.header(
-                    "Authorization",
-                    "Bearer " + token
-            );
-        }
-
-        return request;
-    }
 
     public Response getBooks(BookQueryParams queryParams) {
 
@@ -57,7 +38,6 @@ public class BookService {
     public Response createBook(CreateBookRequest bookRequest) {
 
         return request()
-                .contentType(ContentType.JSON)
                 .body(bookRequest)
                 .when()
                 .post(BookEndpoints.BASE);
@@ -73,7 +53,6 @@ public class BookService {
     public Response updateBook(String id, Object updatePatch) {
         return request()
                 .when()
-                .contentType(ContentType.JSON)
                 .body(updatePatch)
                 .patch(BookEndpoints.getBookById(id));
     }
