@@ -25,7 +25,7 @@ The primary focus of this framework is not only API automation but also learning
 src
 ├── main
 │   └── java
-│       └── com.restfullReads
+│       └── com.restfulReads
 │           ├── annotations
 │           │   ├── Author
 │           │   ├── UseUser
@@ -40,7 +40,7 @@ src
 │
 └── test
     └── java
-        └── com.restfullReads
+        └── com.restfulReads
 │           ├── assertions
 │           ├── base
 │           ├── data

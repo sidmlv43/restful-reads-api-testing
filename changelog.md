@@ -31,7 +31,7 @@ The primary goal of this project is to learn and apply automation architecture p
 src
 ├── main
 │   └── java
-│       └── com.restfullReads
+│       └── com.restfulReads
 │           ├── annotations
 │           ├── config
 │           ├── constants
@@ -42,7 +42,7 @@ src
 │
 └── test
     └── java
-        └── com.restfullReads
+        └── com.restfulReads
             ├── assertions
             ├── base
             ├── listeners

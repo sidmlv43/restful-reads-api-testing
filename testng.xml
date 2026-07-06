@@ -4,13 +4,13 @@
     <test verbose="2" preserve-order="true"
           name="Auth Tests">
         <classes>
-            <class name="com.restfullReads.tests.AuthTest" />
+            <class name="com.restfulReads.tests.AuthTest" />
         </classes>
     </test>
     <test verbose="2" preserve-order="true"
           name="Book Tests">
         <classes>
-            <class name="com.restfullReads.tests.BookServiceTest" />
+            <class name="com.restfulReads.tests.BookServiceTest" />
         </classes>
     </test>
 </suite>
