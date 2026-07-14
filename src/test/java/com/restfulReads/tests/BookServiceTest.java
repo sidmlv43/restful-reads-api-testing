@@ -6,7 +6,9 @@ import com.restfulReads.annotations.ZephyrTest;
 import com.restfulReads.assertions.BookAssertion;
 import com.restfulReads.base.BaseTest;
 import com.restfulReads.data.BookDataFactory;
+import com.restfulReads.dataproviders.BookServiceTestDataProvider;
 import com.restfulReads.enums.UserType;
+import com.restfulReads.models.requests.CreateBookRequest;
 import com.restfulReads.models.responses.Book;
 import com.restfulReads.query.BookQueryParams;
 import com.restfulReads.services.BookService;
@@ -109,20 +111,29 @@ public class BookServiceTest extends BaseTest {
 
     }
 
-    @Test(description = "Test Admin can add a new book")
+    @Test(
+            description = "Test Admin can add a new book",
+            dataProviderClass = BookServiceTestDataProvider.class,
+            dataProvider = "bookDataProvider"
+    )
     @Author("Riya Malviya")
-    @ZephyrTest(value = "BOOKS_105")
+    @ZephyrTest("BOOKS_105")
     @UseUser(UserType.ADMIN)
-    public void testAdminCanCreateBook() {
+    public void testAdminCanCreateBook(
+            CreateBookRequest request
+    ) {
 
-        Book book = bookService.createBook(BookDataFactory.createBook())
-            .then()
+        Book book = bookService.createBook(request)
+                .then()
                 .statusCode(201)
                 .body("_id", notNullValue())
-            .extract()
-            .as(Book.class);
+                .extract()
+                .as(Book.class);
 
-        Assert.assertFalse(book.getId().isEmpty(), "Id is expected not to be null or blank");
+        Assert.assertFalse(
+                book.getId().isEmpty(),
+                "Id is expected not to be null or blank"
+        );
 
         this.createdBookId = book.getId();
     }
