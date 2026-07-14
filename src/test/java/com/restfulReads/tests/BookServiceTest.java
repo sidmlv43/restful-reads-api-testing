@@ -17,7 +17,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import static org.hamcrest.Matchers.*;
-import static org.testng.AssertJUnit.assertEquals;
+
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,8 @@ public class BookServiceTest extends BaseTest {
 
         Response res = bookService.getBooks(bookQueryParams);
         res.then()
-                .statusCode(200);
+                .statusCode(200)
+                .body(matchesJsonSchemaInClasspath("schemas/book-shema.json"));
 
 
     }
@@ -71,6 +73,10 @@ public class BookServiceTest extends BaseTest {
 
 
         Response res = bookService.getBooks(queryParams);
+        res.
+                then().
+                statusCode(200)
+                .body(matchesJsonSchemaInClasspath("schemas/book-shema.json"));
         List<Double> prices = res.jsonPath().getList("results.price", Double.class);
         BookAssertion.assertValueGreaterThanOrEqualsTo(prices, 10);
 
@@ -107,7 +113,10 @@ public class BookServiceTest extends BaseTest {
     public void testCustomerCannotAddBook() {
         bookService.createBook(BookDataFactory.createBook())
                 .then()
-                .statusCode(403);
+                .statusCode(403)
+                .body(containsString("Forbidden"))
+                .body(containsString("does not have required permissions"))
+                .body(matchesJsonSchemaInClasspath("schemas/unauthorized-access-schema.json"));
 
     }
 
@@ -136,6 +145,20 @@ public class BookServiceTest extends BaseTest {
         );
 
         this.createdBookId = book.getId();
+    }
+
+    @Test(
+            description = "Test Created Book can be fetched",
+            dependsOnMethods = "testAdminCanCreateBook"
+    )
+    @Author("Siddharth Malviya")
+    @ZephyrTest("BOOKS_110")
+    public void testGetBookById() {
+        bookService.getBookById(this.createdBookId)
+                .then()
+                .statusCode(200)
+                .body("data._id", notNullValue())
+                .body(matchesJsonSchemaInClasspath("schemas/book_by_id_schema.json"));
     }
 
     @Author("Riya Malviya")

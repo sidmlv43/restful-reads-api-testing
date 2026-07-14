@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number"
+        },
+        "ratingsCount": {
+          "type": "integer"
+        },
+        "averageRating": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "__v": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "_id",
+        "title",
+        "author",
+        "genre",
+        "price",
+        "ratingsCount",
+        "averageRating",
+        "createdAt",
+        "updatedAt",
+        "__v"
+      ]
+    }
+  },
+  "required": [
+    "data"
+  ]
+}
