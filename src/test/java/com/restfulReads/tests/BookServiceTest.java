@@ -192,7 +192,7 @@ public class BookServiceTest extends BaseTest {
         bookService.
                 getBookById(createdBookId)
                 .then()
-                .statusCode(404)
+                .statusCode(403)
                 .body("message", equalTo("Not found"))
                 .body("details", nullValue());
     }

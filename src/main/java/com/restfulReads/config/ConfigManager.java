@@ -36,4 +36,9 @@ public class ConfigManager {
             throw new RuntimeException("Invalid timeout value in config", e);
         }
     }
+
+    public static int getRetryCount() {
+        String retryCount = System.getProperty("retry_count");
+        return retryCount != null ? Integer.parseInt(retryCount) : Integer.parseInt(configLoader.get("retry_count"));
+    }
 }

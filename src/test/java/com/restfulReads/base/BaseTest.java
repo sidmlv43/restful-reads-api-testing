@@ -3,6 +3,8 @@ package com.restfulReads.base;
 import com.restfulReads.config.RestAssuredConfig;
 import com.restfulReads.enums.UserType;
 import com.restfulReads.listeners.ExtentTestListener;
+import com.restfulReads.listeners.RetryAnalyzer;
+import com.restfulReads.listeners.RetryTransformer;
 import com.restfulReads.listeners.UserContextListener;
 import com.restfulReads.models.requests.LoginRequest;
 import com.restfulReads.services.AuthService;
@@ -14,7 +16,8 @@ import org.testng.annotations.Listeners;
 
 @Listeners({
         UserContextListener.class,
-        ExtentTestListener.class
+        ExtentTestListener.class,
+        RetryTransformer.class
 })
 public class BaseTest {
 
