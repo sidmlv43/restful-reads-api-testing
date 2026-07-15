@@ -1,8 +1,68 @@
-# Restful Reads API Automation Framework
+# REST Assured API Automation Framework Template
 
-A scalable API automation framework built using Java, TestNG, Rest Assured, Lombok, and Extent Reports for testing the Restful Reads application.
+A production-style REST Assured Framework built using Java, TestNG, Extent Reports, Data Providers, JSON Schema Validation, Retry Analyzer, Request/Response Logging, and Parallel Execution.
 
-The primary focus of this framework is not only API automation but also learning and applying automation architecture, framework design, reporting, maintainability, scalability, and engineering practices expected from a Senior SDET.
+This project demonstrates the architecture and engineering practices commonly used by Senior SDET and Test Automation Engineers when building scalable, maintainable, and enterprise-ready API automation frameworks.
+
+The objective of this project is not only API testing, but also learning:
+
+- Framework Design
+- Test Architecture
+- API Automation
+- Reporting
+- Test Data Management
+- Parallel Execution
+- Maintainable Automation Practices
+- Senior SDET Engineering Concepts
+
+---
+
+# Features
+
+✅ REST Assured Framework
+
+✅ API Automation Framework
+
+✅ TestNG Framework
+
+✅ Extent Reports
+
+✅ Request & Response Logging
+
+✅ Data Providers
+
+✅ JSON Schema Validation
+
+✅ Retry Analyzer
+
+✅ Parallel Execution
+
+✅ Role-Based Authentication
+
+✅ Custom Annotations
+
+✅ DTO Serialization & Deserialization
+
+✅ Query Parameter Builder
+
+✅ Thread-Safe Session Management
+
+✅ Java Faker Integration
+
+---
+
+# Who Is This Project For?
+
+This repository can be used as:
+
+- REST Assured Framework Template
+- API Automation Framework Template
+- Java TestNG Framework Reference Project
+- SDET Learning Project
+- API Testing Framework Example
+- Automation Framework Starter Project
+- Framework Design Reference
+- REST API Automation Project
 
 ---
 
@@ -16,6 +76,31 @@ The primary focus of this framework is not only API automation but also learning
 - Lombok
 - Extent Reports
 - Java Faker
+- JSON Schema Validator
+
+---
+
+# Covered Concepts
+
+This project covers:
+
+- REST Assured
+- API Testing
+- API Automation
+- TestNG
+- Data Providers
+- JSON Schema Validation
+- Extent Reports
+- Retry Mechanism
+- Parallel Execution
+- DTO Serialization
+- DTO Deserialization
+- Request & Response Logging
+- Framework Design
+- Custom Annotations
+- Authentication Management
+- Session Management
+- Java Automation Frameworks
 
 ---
 
@@ -32,27 +117,42 @@ src
 │           │   └── ZephyrTest
 │           │
 │           ├── config
+│           │   ├── ConfigManager
+│           │   └── RestAssuredConfig
+│           │
 │           ├── constants
 │           ├── enums
+│           │
 │           ├── models
-│           ├── services
-│           └── session
+│           │   ├── requests
+│           │   └── responses
+│           │
+│           ├── query
+│           ├── session
+│           │   ├── SessionManager
+│           │   └── TokenManager
+│           │
+│           └── services
+│               ├── base
+│               │   └── BaseService
+│               │
+│               ├── AuthService
+│               └── BookService
 │
 └── test
     └── java
         └── com.restfulReads
-│           ├── assertions
-│           ├── base
-│           ├── data
-│           ├── listeners
-│           │   ├── UserContextListener
-│           │   └── ExtentTestListener
-│           │
-│           ├── reporting
-│           │   ├── ExtentManager
-│           │   └── ExtentTestManager
-│           │
-│           └── tests
+            ├── assertions
+            ├── base
+            ├── data
+            ├── dataproviders
+            ├── listeners
+            ├── reporting
+            └── tests
+
+src/test/resources
+├── schemas
+└── testng.xml
 ```
 
 ---
@@ -61,172 +161,49 @@ src
 
 ```text
 Tests
-    │
-    ▼
+   │
+   ▼
 Assertions
-    │
-    ▼
+   │
+   ▼
 Services
-    │
-    ▼
-Endpoints
-    │
-    ▼
+   │
+   ▼
+BaseService
+   │
+   ▼
 Rest Assured
-    │
-    ▼
+   │
+   ▼
 REST API
 ```
 
 ---
 
-# Configuration Management
+# Authentication Architecture
 
-Configuration values are managed centrally using `ConfigManager`.
+The framework implements role-based authentication using cached JWT tokens.
 
-Example:
-
-```java
-ConfigManager.getBaseUrl();
-```
-
-Benefits:
-
-- Single source of truth
-- Easy environment switching
-- Better maintainability
-
----
-
-# Endpoint Management
-
-API endpoints are centralized into constant classes.
-
-Example:
-
-```java
-AuthEndPoints.LOGIN
-AuthEndPoints.REGISTER
-
-BookEndpoints.BASE
-```
-
-Benefits:
-
-- No hardcoded URLs
-- Easier maintenance
-- Better readability
-
----
-
-# Authentication
-
-## AuthService
-
-Provides methods for:
-
-- Login
-- Registration
-
-### Login Example
-
-```java
-String token =
-        authService.login(
-                LoginRequest.builder()
-                        .email("admin@example.com")
-                        .password("password")
-                        .build()
-        );
-```
-
----
-
-## Register Example
-
-```java
-String token =
-        authService.register(
-                RegisterRequest.builder()
-                        .name("John Doe")
-                        .email("john@example.com")
-                        .password("password")
-                        .build()
-        );
-```
-
----
-
-# Authentication Models
-
-## LoginRequest
-
-```java
-LoginRequest.builder()
-        .email("user@example.com")
-        .password("password")
-        .build();
-```
-
----
-
-## RegisterRequest
-
-```java
-RegisterRequest.builder()
-        .name("John Doe")
-        .email("john@example.com")
-        .password("password")
-        .build();
-```
-
----
-
-## AuthToken
-
-Represents JWT authentication responses.
-
-Example:
-
-```json
-{
-  "token": "<jwt-token>"
-}
-```
-
----
-
-# Role-Based Authentication
-
-## UserType
-
-```java
-public enum UserType {
-
-    ADMIN,
-    CUSTOMER
-
-}
-```
-
----
-
-# TokenManager
-
-Stores tokens associated with known user types.
-
-Example:
-
-```java
-TokenManager.register(
-        UserType.ADMIN,
-        adminToken
-);
-
-TokenManager.register(
-        UserType.CUSTOMER,
-        customerToken
-);
+```text
+@BeforeSuite
+        │
+        ▼
+Authenticate Users
+        │
+        ▼
+TokenManager
+        │
+        ▼
+Execute Test
+        │
+        ▼
+@UseUser
+        │
+        ▼
+SessionManager
+        │
+        ▼
+Authenticated Request
 ```
 
 Benefits:
@@ -234,60 +211,7 @@ Benefits:
 - Login once per suite
 - Faster execution
 - Reduced API calls
-
----
-
-# SessionManager
-
-Maintains the active user token for the current thread.
-
-Example:
-
-```java
-SessionManager.use(UserType.ADMIN);
-```
-
-Authentication headers are automatically added when a user session is active.
-
-The implementation uses:
-
-```java
-ThreadLocal
-```
-
-to support future parallel execution.
-
----
-
-# Authentication Flow
-
-```text
-@BeforeSuite
-        │
-        ▼
-Authenticate Admin
-        │
-        ▼
-TokenManager
-        │
-        ▼
-Authenticate Customer
-        │
-        ▼
-TokenManager
-        │
-        ▼
-Execute Tests
-        │
-        ▼
-@UseUser(...)
-        │
-        ▼
-SessionManager
-        │
-        ▼
-API Request
-```
+- Cleaner test implementation
 
 ---
 
@@ -295,7 +219,7 @@ API Request
 
 ## @UseUser
 
-Specifies which user should execute a test.
+The framework allows authentication to be defined declaratively.
 
 Example:
 
@@ -309,37 +233,112 @@ public void createBookTest() {
 
 Benefits:
 
-- Declarative authentication
-- Cleaner tests
 - No manual token handling
+- Cleaner tests
+- Better readability
+- Reduced duplicate code
 
 ---
 
 # Anonymous Requests
 
-Authentication is optional.
+Authentication is completely optional.
 
-If no user context is specified:
+Example:
 
 ```java
 bookService.getBooks();
 ```
 
-The request executes without an Authorization header.
+Useful for:
 
-This enables:
-
-- Public endpoint testing
-- Negative authorization testing
-- Unauthorized user validation
+- Public endpoint validation
+- Unauthorized access testing
+- Negative test scenarios
 
 ---
 
-# Book Models
+# BaseService
+
+All service classes inherit from `BaseService`.
+
+Responsibilities:
+
+- Base URI configuration
+- Content-Type configuration
+- Authorization management
+- Extent request/response logging
+
+Example:
+
+```java
+protected RequestSpecification request()
+```
+
+Benefits:
+
+- Centralized configuration
+- Easier maintenance
+- Reduced duplication
+
+---
+
+# Request DTOs
+
+Examples:
+
+```java
+LoginRequest
+RegisterRequest
+CreateBookRequest
+```
+
+Example:
+
+```java
+CreateBookRequest request =
+        CreateBookRequest.builder()
+                .title("Clean Code")
+                .author("Robert Martin")
+                .genre("Programming")
+                .price(29.99)
+                .build();
+```
+
+Request DTOs are automatically serialized into JSON.
+
+---
+
+# Response DTOs
+
+Examples:
+
+```java
+AuthToken
+Book
+```
+
+Example:
+
+```java
+Book createdBook =
+        response.as(Book.class);
+```
+
+Benefits:
+
+- Type Safety
+- Better IDE Support
+- Cleaner Assertions
+- Easier Maintenance
+
+---
+
+# Query Builder
 
 ## BookQueryParams
 
-Builder-based query parameter construction.
+Supports flexible and reusable query generation.
 
 Example:
 
@@ -355,9 +354,14 @@ BookQueryParams queryParams =
 
 ---
 
-## Advanced Filtering
+# Advanced Filtering
 
-Supports dynamic operator-based filters.
+Supported Operators:
+
+- gt
+- gte
+- lt
+- lte
 
 Example:
 
@@ -373,129 +377,77 @@ BookQueryParams queryParams =
                 .build();
 ```
 
-Supported operators:
-
-- gt
-- gte
-- lt
-- lte
-
----
-
-## CreateBookRequest
-
-Represents book creation payload.
-
-Example:
-
-```java
-CreateBookRequest.builder()
-        .title("Clean Code")
-        .author("Robert Martin")
-        .genre("Programming")
-        .price(29.99)
-        .build();
-```
-
----
-
-## Book
-
-Represents book response payload returned by the API.
-
-Example:
-
-```java
-Book book =
-        response.as(Book.class);
-```
-
 ---
 
 # Test Data Management
 
 ## BookDataFactory
 
-Uses Java Faker to generate realistic test data.
+The framework uses Java Faker for dynamic data generation.
 
 Example:
 
 ```java
-CreateBookRequest book =
+CreateBookRequest request =
         BookDataFactory.createBook();
 ```
 
 Benefits:
 
-- Reduces hardcoded test data
-- Improves test reliability
-- Better coverage
+- Dynamic datasets
+- Reduced hardcoded values
+- Improved coverage
 
 ---
 
-# Services
+# Data Driven Testing
 
-## BookService
+The framework supports native TestNG Data Providers.
 
-Supports:
-
-### Get Books
+Example:
 
 ```java
-bookService.getBooks();
+@DataProvider(name = "bookDataProvider")
+public Object[][] bookDataProvider() {
+
+    Object[][] data =
+            new Object[5][1];
+
+    for (int i = 0; i < 5; i++) {
+        data[i][0] =
+                BookDataFactory.createBook();
+    }
+
+    return data;
+}
 ```
 
----
-
-### Get Books Using Filters
+Usage:
 
 ```java
-bookService.getBooks(queryParams);
+@Test(
+        dataProvider = "bookDataProvider",
+        dataProviderClass =
+                BookServiceTestDataProvider.class
+)
+public void testAdminCanCreateBook(
+        CreateBookRequest request
+) {
+
+}
 ```
+
+Benefits:
+
+- Increased coverage
+- Reduced duplication
+- Better scalability
 
 ---
 
-### Get Book By ID
+# Custom Assertion Layer
 
-```java
-bookService.getBookById(bookId);
-```
-
----
-
-### Create Book
-
-```java
-bookService.createBook(bookRequest);
-```
-
----
-
-### Update Book
-
-```java
-bookService.updateBook(
-        bookId,
-        Map.of(
-                "price",
-                44.44
-        )
-);
-```
-
----
-
-### Delete Book
-
-```java
-bookService.deleteBook(bookId);
-```
-
----
-
-# Assertions Layer
-
-Business assertions are separated from tests.
+Business assertions are separated from test implementation.
 
 Example:
 
@@ -508,9 +460,38 @@ BookAssertion.assertValueGreaterThanOrEqualsTo(
 
 Benefits:
 
-- Better reuse
+- Reusability
 - Cleaner tests
-- Easier maintenance
+- Better maintainability
+
+---
+
+# Schema Validation
+
+The framework validates API contracts using JSON Schemas.
+
+Schemas are stored under:
+
+```text
+src/test/resources/schemas
+```
+
+Example:
+
+```java
+response.then()
+        .body(
+                matchesJsonSchemaInClasspath(
+                        "schemas/book-schema.json"
+                )
+        );
+```
+
+Benefits:
+
+- Contract Validation
+- Response Structure Validation
+- Breaking Change Detection
 
 ---
 
@@ -518,7 +499,7 @@ Benefits:
 
 ## Extent Reports
 
-The framework integrates Extent Reports to generate detailed HTML execution reports.
+The framework integrates Extent Reports to produce interactive HTML reports.
 
 Generated Report:
 
@@ -526,19 +507,19 @@ Generated Report:
 test-output/ExtentReport.html
 ```
 
-The report captures:
+The report includes:
 
 - Pass/Fail/Skip Status
-- Execution Time
-- Stack Traces
-- Categories
-- Test Metadata
+- Execution Duration
 - Author Information
-- Zephyr Test References
+- Zephyr References
+- Categories
+- Stack Traces
+- Request & Response Logs
 
 ---
 
-## Reporting Architecture
+# Reporting Architecture
 
 ```text
 Test Execution
@@ -558,41 +539,63 @@ Extent Report
 
 ---
 
-## ExtentManager
+## Request & Response Logging
 
-Maintains a singleton `ExtentReports` instance.
+Every request and response is automatically published to Extent.
 
-Responsible for:
+Captured Information:
 
-- Reporter initialization
-- Report configuration
-- Report flushing
+- HTTP Method
+- URI
+- Headers
+- Request Payload
+- Response Status
+- Response Payload
+
+Example:
+
+```text
+Request
+--------
+POST /api/books
+
+{
+  ...
+}
+
+Response
+---------
+201
+
+{
+  ...
+}
+```
+
+This significantly improves debugging and failure analysis.
 
 ---
 
-## ExtentTestManager
+# Retry Mechanism
 
-Provides thread-safe access to:
+The framework includes automatic retry support for transient failures.
 
-```java
-ExtentTest
+Components:
+
+```text
+RetryAnalyzer
+RetryTransformer
 ```
 
-using:
+Benefits:
 
-```java
-ThreadLocal<ExtentTest>
-```
-
-This ensures compatibility with future parallel execution.
+- Reduces flaky failures
+- Better CI reliability
+- Minimal test maintenance
 
 ---
 
 # Test Metadata
-
-The framework supports metadata annotations to improve traceability and reporting.
-
----
 
 ## @Author
 
@@ -608,35 +611,27 @@ public void createBookTest() {
 }
 ```
 
-Appears in the report under:
-
-```text
-Author
-```
+Appears directly in Extent Reports.
 
 ---
 
 ## @ZephyrTest
 
-Associates an automated test with an external test case.
+Provides test management linkage.
 
 Example:
 
 ```java
 @Test
-@ZephyrTest("RR-123")
+@ZephyrTest("BOOKS_101")
 public void createBookTest() {
 
 }
 ```
 
-Appears in the report under:
+Appears directly in Extent Reports.
 
-```text
-Zephyr Test Case
-```
-
-This is designed for future integration with:
+Future integrations:
 
 - Zephyr
 - Jira
@@ -646,7 +641,7 @@ This is designed for future integration with:
 
 # Test Categorization
 
-The framework uses native TestNG groups.
+Supports native TestNG Groups.
 
 Example:
 
@@ -660,15 +655,30 @@ Example:
 )
 ```
 
-Groups automatically appear as report categories.
+Categories automatically appear in Extent Reports.
 
-Example:
+---
 
-```text
-Smoke
-Critical
-Books
+# Parallel Execution
+
+The framework supports parallel execution.
+
+Thread safety is achieved using:
+
+```java
+ThreadLocal
 ```
+
+within:
+
+- SessionManager
+- ExtentTestManager
+
+Benefits:
+
+- Improved execution speed
+- Better scalability
+- Safe parallel reporting
 
 ---
 
@@ -676,24 +686,25 @@ Books
 
 ```java
 @Test(
-        description = "Admin can create a new book",
-        groups = {
-                "smoke",
-                "critical",
-                "books"
-        }
+        description = "Admin can create a new book"
 )
 @Author("Siddharth Malviya")
-@ZephyrTest("RR-123")
+@ZephyrTest("BOOKS_105")
 @UseUser(UserType.ADMIN)
-public void testAdminCanCreateBook() {
+public void testAdminCanCreateBook(
+        CreateBookRequest request
+) {
 
-    CreateBookRequest request =
-            BookDataFactory.createBook();
+    Book createdBook =
+            bookService.createBook(request)
+                    .then()
+                    .statusCode(201)
+                    .extract()
+                    .as(Book.class);
 
-    bookService.createBook(request)
-            .then()
-            .statusCode(201);
+    Assert.assertNotNull(
+            createdBook.getId()
+    );
 }
 ```
 
@@ -701,41 +712,37 @@ public void testAdminCanCreateBook() {
 
 # Current Capabilities
 
-✅ Configuration Management
+✅ REST Assured Framework
 
-✅ Endpoint Management
+✅ API Automation Framework
 
-✅ AuthService
+✅ Java + TestNG Architecture
 
-✅ Login & Register DTOs
+✅ Service Layer Architecture
 
-✅ AuthToken DTO
+✅ DTO Serialization
 
-✅ UserType Enum
-
-✅ TokenManager
-
-✅ Thread-Safe SessionManager
+✅ DTO Deserialization
 
 ✅ Role-Based Authentication
 
+✅ TokenManager
+
+✅ SessionManager
+
 ✅ @UseUser Annotation
 
-✅ BookQueryParams Builder
+✅ Query Parameter Builder
 
 ✅ Dynamic Query Filtering
 
-✅ CreateBookRequest DTO
+✅ Java Faker Integration
 
-✅ Book DTO
+✅ Data Providers
 
-✅ BookService
+✅ JSON Schema Validation
 
-✅ CRUD Operations
-
-✅ Java Faker Support
-
-✅ Assertion Layer
+✅ Request & Response Logging
 
 ✅ Extent Reports
 
@@ -745,4 +752,103 @@ public void testAdminCanCreateBook() {
 
 ✅ Test Categorization
 
+✅ Retry Analyzer
+
+✅ Retry Transformer
+
+✅ Parallel Execution Support
+
 ✅ Anonymous Request Support
+
+✅ Assertion Layer
+
+---
+
+# Roadmap
+
+## CI/CD
+
+⬜ Docker Support
+
+⬜ Jenkins Integration
+
+⬜ GitHub Actions
+
+⬜ Azure DevOps Pipelines
+
+---
+
+## Quality & Validation
+
+⬜ Checkstyle Integration
+
+⬜ Database Validation
+
+⬜ Extended Contract Testing
+
+---
+
+## Framework Enhancements
+
+⬜ Environment Profiles
+
+⬜ Excel-Based Data Providers
+
+⬜ Centralized Test Data Repository
+
+⬜ Custom Retry Configuration
+
+---
+
+# Keywords
+
+REST Assured Framework
+
+REST Assured Framework Template
+
+API Automation Framework
+
+Java API Automation Framework
+
+REST Assured Project
+
+REST Assured GitHub Project
+
+TestNG Framework
+
+SDET Framework
+
+Automation Testing Framework
+
+API Testing Framework
+
+Java Test Automation
+
+REST API Testing
+
+Automation Framework Template
+
+Senior SDET Project
+
+Java TestNG Automation Framework
+
+---
+
+# Learning Objectives
+
+This project is being developed to strengthen expertise in:
+
+- API Automation
+- Rest Assured
+- Framework Design
+- TestNG Internals
+- Reporting
+- Session Management
+- Data Driven Testing
+- Parallel Execution
+- Contract Validation
+- Custom Annotations
+- CI/CD
+- Docker
+- Jenkins
+- Senior SDET Practices

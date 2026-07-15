@@ -1,561 +1,114 @@
-# Restful Reads API Automation Framework
+# Restful Reads — Rest Assured API Automation Framework
 
-A scalable API automation framework built using Java, TestNG, Rest Assured, and Lombok for testing the Restful Reads application.
+A Java + Rest Assured + TestNG API automation framework built for the Restful Reads app. It covers role-based JWT authentication, thread-safe parallel execution, JSON schema validation, data-driven testing with Java Faker, retry handling for flaky tests, and Extent Reports for reporting.
 
-The primary goal of this project is to learn and apply automation architecture principles, framework design, test engineering, and API automation best practices while progressing toward Senior SDET and Test Management responsibilities.
+I built this to actually learn how a senior SDET puts a framework together — not to write a pile of tests that hit endpoints and check status codes. I'm about a year into my career as an automation engineer, and this project is where I push past what my day job requires.
 
----
+If you're looking for a Rest Assured + TestNG framework template with role-based auth, thread-safe session handling, and Extent reporting already wired up, feel free to fork this and adapt it — the sections below walk through how each piece works and why it's built that way, so you're not just copying code you don't understand.
 
-# Tech Stack
+## Why this exists
 
-- Java 17
-- Maven
-- TestNG
-- Rest Assured
-- Lombok
-- Jackson
+Most tutorial-following frameworks I'd built before this had one big flaw: everything worked as long as you ran one test at a time. The moment you tried running tests in parallel, or testing what happens when a customer — not an admin — hits a protected endpoint, the whole thing fell apart. This project exists to fix that properly, and to document each decision as I made it, including the ones I got wrong the first time.
 
-### Planned
+## Tech stack
 
-- Extent Reports
-- Java Faker
-- Docker
-- Jenkins
-- GitHub Actions / Azure DevOps
+Java 17, Maven, TestNG, Rest Assured, Lombok, Jackson, Extent Reports, Java Faker.
 
----
+## Project structure
 
-# Project Structure
+```
+src/main/java/com/restfulReads
+├── annotations     → @UseUser, @Author, @ZephyrTest
+├── config          → environment config + Rest Assured setup
+├── constants       → endpoint URLs, kept out of the service classes
+├── models          → request/response DTOs
+├── query           → BookQueryParams builder
+├── services        → AuthService, BookService, BaseService
+├── session         → TokenManager, SessionManager
+└── reporting       → Extent Reports integration
 
-```text
-src
-├── main
-│   └── java
-│       └── com.restfulReads
-│           ├── annotations
-│           ├── config
-│           ├── constants
-│           ├── enums
-│           ├── models
-│           ├── services
-│           └── session
-│
-└── test
-    └── java
-        └── com.restfulReads
-            ├── assertions
-            ├── base
-            ├── listeners
-            └── tests
+src/test/java/com/restfulReads
+├── assertions      → reusable business assertions
+├── base            → BaseTest, suite-level setup
+├── data            → BookDataFactory (Faker-based)
+├── dataproviders
+├── listeners       → UserContextListener, ExtentTestListener, RetryAnalyzer, RetryTransformer
+└── tests
 ```
 
----
+## Role-based authentication and session management
 
-# Framework Features
+This is the part I spent the most time getting right, and it's the piece I'd point to first if you're using this as a reference for your own framework.
 
-## Configuration Management
-
-Application configuration is centralized through `ConfigManager`.
-
-Example:
-
-```java
-ConfigManager.getBaseUrl();
-```
-
-Benefits:
-
-- Centralized configuration
-- Easier environment management
-- Better maintainability
-
----
-
-# Endpoint Management
-
-API routes are maintained separately from service implementations.
-
-Example:
-
-```java
-AuthEndPoints.LOGIN
-AuthEndPoints.REGISTER
-
-BookEndpoints.BASE
-```
-
-Benefits:
-
-- Avoids hardcoded URLs
-- Easier endpoint updates
-- Better code organization
-
----
-
-# Authentication
-
-## AuthService
-
-Provides methods for:
-
-- Login
-- Registration
-
-### Login Example
-
-```java
-String token =
-        authService.login(
-                LoginRequest.builder()
-                        .email("admin@example.com")
-                        .password("adminpass")
-                        .build()
-        );
-```
-
-### Register Example
-
-```java
-String token =
-        authService.register(
-                RegisterRequest.builder()
-                        .name("John Doe")
-                        .email("john@example.com")
-                        .password("password123")
-                        .build()
-        );
-```
-
----
-
-# Authentication Models
-
-## LoginRequest
-
-```java
-LoginRequest.builder()
-        .email("user@example.com")
-        .password("password123")
-        .build();
-```
-
----
-
-## RegisterRequest
-
-```java
-RegisterRequest.builder()
-        .name("John Doe")
-        .email("john@example.com")
-        .password("password123")
-        .build();
-```
-
----
-
-## AuthToken
-
-Represents authentication responses.
-
-Example:
-
-```json
-{
-  "token": "<jwt-token>"
-}
-```
-
----
-
-# Role-Based User Management
-
-## UserType
-
-```java
-public enum UserType {
-
-    ADMIN,
-    CUSTOMER
-
-}
-```
-
-The framework currently supports:
-
-- Admin users
-- Customer users
-
----
-
-# TokenManager
-
-Stores authentication tokens for known user types.
-
-Example:
-
-```java
-TokenManager.register(
-        UserType.ADMIN,
-        adminToken
-);
-
-TokenManager.register(
-        UserType.CUSTOMER,
-        customerToken
-);
-```
-
-Tokens are loaded once and reused across the entire test suite.
-
-Benefits:
-
-- Faster execution
-- Fewer login calls
-- Reduced API traffic
-
----
-
-# SessionManager
-
-SessionManager maintains the active user session for the current test thread.
-
-Example:
-
-```java
-SessionManager.use(UserType.ADMIN);
-```
-
-Internally:
-
-```text
-ADMIN
-    ↓
-TokenManager
-    ↓
-SessionManager
-    ↓
-Request Authorization Header
-```
-
-The implementation is thread-safe and supports future parallel execution.
-
----
-
-# User Annotation
-
-## @UseUser
-
-Tests can declare the required user role through annotation-based configuration.
-
-Example:
+At suite startup, the framework logs in as an admin and a customer once, and caches both JWT tokens through `TokenManager`. Individual tests declare which user they need with a custom annotation instead of calling login code manually:
 
 ```java
 @Test
 @UseUser(UserType.ADMIN)
-public void adminShouldCreateBook() {
-
-}
+public void adminCanCreateBook() { ... }
 ```
 
-Benefits:
+A TestNG `IInvokedMethodListener` (`UserContextListener`) reads that annotation before the test method runs, sets the active user for that thread via `SessionManager`, and clears it afterward — pass, fail, or skip, doesn't matter. Getting that cleanup step right took a couple of iterations. My first pass didn't clear sessions reliably on failure, which meant a test could silently inherit the wrong user's token if it ran on a thread pool worker that had just handled a different test. Not a fun bug to chase down, glad I caught it before it caused a confusing false pass somewhere.
 
-- Cleaner tests
-- More readable intent
-- Reduced setup code
+If a test doesn't use `@UseUser` at all, requests go out with no Authorization header. That's intentional — it's how public-endpoint tests and unauthorized-access tests work without a separate code path or a fake "guest" user.
 
----
+Session state lives in a `ThreadLocal<String>`, which matters because the suite genuinely runs in parallel (`parallel="classes"`, 10 threads in `testng.xml`) — this isn't defensive over-engineering, it's load-bearing. Take the `ThreadLocal` out and parallel runs will leak tokens across threads.
 
-# Anonymous Requests
+## Service layer
 
-Authentication is optional.
+`BaseService` centralizes everything every request needs: base URI, content type, attaching the auth header when one exists, and logging the request/response into the Extent report through a custom Rest Assured filter. Every service class extends it, so none of that has to be repeated.
 
-If no active user is selected:
+Currently implemented: `AuthService` (login, register) and `BookService` (get, create, update, delete, and query filtering with operators like `price[gte]` and `price[lte]`). `CartService`, `AddressService`, `RatingService`, and `UserService` exist as stubs — endpoints are mapped in constants, the service methods aren't written yet. Listed honestly here rather than implied as finished.
 
-```java
-bookService.getBooks();
+## Test data with Java Faker
+
+Faker generates realistic book payloads through `BookDataFactory`, so tests aren't full of hardcoded titles, authors, and prices. This is also what powers the data-driven tests via TestNG's `@DataProvider`.
+
+Known gap: there's no framework-level cleanup mechanism yet for data created during a run. If a test creates a book, nothing guarantees it gets deleted afterward — some of my current dependent test chains rely on a later test doing the deleting, which is fragile. A proper fix looks like a per-test registry of created resource IDs, torn down in `@AfterMethod` regardless of outcome. That's the next real infrastructure piece, not a test-writing fix.
+
+## JSON schema validation
+
+Responses are validated against JSON schemas stored under `src/test/resources/schemas`, using `rest-assured`'s `matchesJsonSchemaInClasspath`. This catches breaking API contract changes — a field renamed or a type changed — separately from functional assertions.
+
+## Reporting with Extent Reports
+
+Extent Reports generates an interactive HTML report (`test-output/ExtentReport.html`) after every run. A custom Rest Assured filter (`ExtentRestAssuredFilter`) logs the HTTP method, URI, and request/response bodies into the report for every call, so when a test fails, you can see exactly what went over the wire without re-running anything.
+
+`@Author` and `@ZephyrTest` are custom annotations that show up as metadata in the report. I added them mostly to practice thinking about test traceability the way real test-management tooling expects — this isn't wired up to an actual Zephyr or Jira instance.
+
+Reporting is also thread-safe, using a second `ThreadLocal` (`ExtentTestManager`) so parallel test execution doesn't cross-contaminate report entries between threads.
+
+## Retry handling for flaky tests
+
+Every test gets a retry analyzer applied globally through an `IAnnotationTransformer` (`RetryTransformer`, which sets `RetryAnalyzer` on every `@Test` method). `retry_count` is configurable per environment — defaults to 3 in `application-uat.properties`, overridable with `-Dretry_count`. Retries show up as warnings in the Extent report, so a retried test stays visible instead of disappearing behind a green checkmark.
+
+To actually confirm this worked rather than assuming it did, I temporarily broke a passing assertion on purpose — changed an expected status code so the test would fail every time — and watched it retry 3 times and then fail in the report as expected, before reverting it. I'd rather catch "my retry logic doesn't actually retry" this way than find out during a real flaky run in CI.
+
+Still deciding on one thing: retry currently applies to every test, not just ones prone to genuine transient failure (timeouts, connection resets). A test failing because of a real assertion bug also retries 3 times before reporting red, which just delays the signal rather than helping. Scoping retry to specific exception types is on the list.
+
+## Environment configuration
+
+`ConfigManager` reads a `-Denv` system property (defaults to `uat`) and loads the matching `application-{env}.properties` file — base URL, timeout, and retry count are all environment-scoped this way rather than hardcoded.
+
+## Running the suite
+
+```
+mvn test -Denv=uat
 ```
 
-The request executes without an Authorization header.
+Omit `-Denv` and it falls back to `uat`.
 
-This enables:
+## Using this as a template
 
-- Public endpoint testing
-- Unauthorized access testing
-- Negative authorization scenarios
+If you're adapting this for your own API: the pieces that transfer directly regardless of what you're testing are `BaseService`, `SessionManager`/`TokenManager`, `UserContextListener`, and the retry/reporting listeners — none of them know anything about books specifically. The Book-specific parts (`BookService`, `BookQueryParams`, `BookDataFactory`, schemas) are the part you'd swap out for your own domain.
 
----
+## What's not here yet
 
-# Book Models
-
-## BookQueryParams
-
-Provides a builder-based query parameter construction mechanism.
-
-Example:
-
-```java
-BookQueryParams queryParams =
-        BookQueryParams.builder()
-                .page(1)
-                .limit(10)
-                .author("Tolkien")
-                .build();
-```
+- CI/CD (GitHub Actions or Jenkins)
+- Cart, Order, Address, Rating services — endpoints are mapped, services aren't written
+- A real test-data cleanup mechanism
+- Better isolation between a couple of book tests that currently share state through an instance field — works today, but it's more fragile than I'd like, and it's next on my list to fix properly
 
 ---
 
-## Advanced Filters
-
-Supports dynamic operator-based filtering.
-
-Example:
-
-```java
-BookQueryParams queryParams =
-        BookQueryParams.builder()
-                .filters(
-                        Map.of(
-                                "price[gte]", 10,
-                                "price[lte]", 100
-                        )
-                )
-                .build();
-```
-
-Supported operators:
-
-- gt
-- gte
-- lt
-- lte
-
----
-
-## CreateBookRequest
-
-DTO representing the payload for book creation.
-
-Example:
-
-```java
-CreateBookRequest.builder()
-        .title("Clean Code")
-        .author("Robert Martin")
-        .isbn("9780132350884")
-        .price(29.99)
-        .stock(50)
-        .build();
-```
-
----
-
-# Services
-
-## BookService
-
-Currently supports:
-
-### Get Books
-
-```java
-bookService.getBooks();
-```
-
----
-
-### Get Books With Filters
-
-```java
-bookService.getBooks(queryParams);
-```
-
----
-
-### Get Book By ID
-
-```java
-bookService.getBookById(bookId);
-```
-
----
-
-### Create Book
-
-```java
-bookService.createBook(bookRequest);
-```
-
----
-
-### Delete Book
-
-```java
-bookService.deleteBook(bookId);
-```
-
----
-
-# Assertions
-
-Business logic verification is separated from test methods.
-
-Example:
-
-```java
-BookAssertion.assertValueGreaterThanEqualsTo(
-        prices,
-        10
-);
-```
-
-Benefits:
-
-- Better reuse
-- Cleaner tests
-- Easier maintenance
-
----
-
-# Example Test
-
-```java
-@Test
-@UseUser(UserType.ADMIN)
-public void shouldCreateBook() {
-
-    CreateBookRequest request =
-            CreateBookRequest.builder()
-                    .title("Clean Code")
-                    .author("Robert Martin")
-                    .isbn("9780132350884")
-                    .price(29.99)
-                    .stock(50)
-                    .build();
-
-    bookService.createBook(request)
-            .then()
-            .statusCode(201);
-}
-```
-
----
-
-# Authentication Flow
-
-```text
-@BeforeSuite
-        │
-        ▼
-Login As Admin
-        │
-        ▼
-Store In TokenManager
-        │
-        ▼
-Login As Customer
-        │
-        ▼
-Store In TokenManager
-        │
-        ▼
-Tests Execute
-        │
-        ▼
-@UseUser(...)
-        │
-        ▼
-SessionManager
-        │
-        ▼
-Authorized Requests
-```
-
----
-
-# Current Capabilities
-
-✅ Config Management
-
-✅ Endpoint Management
-
-✅ AuthService
-
-✅ Login & Register DTOs
-
-✅ AuthToken DTO
-
-✅ UserType Enum
-
-✅ TokenManager
-
-✅ Thread-Safe SessionManager
-
-✅ @UseUser Annotation
-
-✅ BookQueryParams Builder
-
-✅ Dynamic Query Filters
-
-✅ CreateBookRequest DTO
-
-✅ BookService
-
-✅ Assertion Layer
-
-✅ Anonymous Request Support
-
----
-
-# Roadmap
-
-## Reporting
-
-- Extent Reports
-- TestNG Listeners
-- Request/Response Logging
-- Execution Dashboards
-
----
-
-## Test Data
-
-- Java Faker Integration
-- Data Factory Pattern
-
----
-
-## API Coverage
-
-- Books
-- Cart
-- Orders
-- Addresses
-- Ratings
-
----
-
-## Authentication Enhancements
-
-- JWT Expiry Handling
-- Automatic Token Refresh
-
----
-
-## CI/CD
-
-- Docker
-- Jenkins
-- GitHub Actions
-- Azure DevOps
-
----
-
-## Advanced Automation Topics
-
-- Parallel Execution
-- Schema Validation
-- Performance Testing
-- Workflow Automation
-- End-to-End User Journeys
-
----
+Still very much a work in progress — I'm adding to this as I learn, and the gaps listed above are known weak spots I'm actively working through, not blind spots I've missed.
