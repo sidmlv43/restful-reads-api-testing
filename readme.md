@@ -1,854 +1,114 @@
-# REST Assured API Automation Framework Template
+# Restful Reads — Rest Assured API Automation Framework
 
-A production-style REST Assured Framework built using Java, TestNG, Extent Reports, Data Providers, JSON Schema Validation, Retry Analyzer, Request/Response Logging, and Parallel Execution.
+A Java + Rest Assured + TestNG API automation framework built for the Restful Reads app. It covers role-based JWT authentication, thread-safe parallel execution, JSON schema validation, data-driven testing with Java Faker, retry handling for flaky tests, and Extent Reports for reporting.
 
-This project demonstrates the architecture and engineering practices commonly used by Senior SDET and Test Automation Engineers when building scalable, maintainable, and enterprise-ready API automation frameworks.
+I built this to actually learn how a senior SDET puts a framework together — not to write a pile of tests that hit endpoints and check status codes. I'm about a year into my career as an automation engineer, and this project is where I push past what my day job requires.
 
-The objective of this project is not only API testing, but also learning:
+If you're looking for a Rest Assured + TestNG framework template with role-based auth, thread-safe session handling, and Extent reporting already wired up, feel free to fork this and adapt it — the sections below walk through how each piece works and why it's built that way, so you're not just copying code you don't understand.
 
-- Framework Design
-- Test Architecture
-- API Automation
-- Reporting
-- Test Data Management
-- Parallel Execution
-- Maintainable Automation Practices
-- Senior SDET Engineering Concepts
+## Why this exists
 
----
+Most tutorial-following frameworks I'd built before this had one big flaw: everything worked as long as you ran one test at a time. The moment you tried running tests in parallel, or testing what happens when a customer — not an admin — hits a protected endpoint, the whole thing fell apart. This project exists to fix that properly, and to document each decision as I made it, including the ones I got wrong the first time.
 
-# Features
+## Tech stack
 
-✅ REST Assured Framework
+Java 17, Maven, TestNG, Rest Assured, Lombok, Jackson, Extent Reports, Java Faker.
 
-✅ API Automation Framework
+## Project structure
 
-✅ TestNG Framework
+```
+src/main/java/com/restfulReads
+├── annotations     → @UseUser, @Author, @ZephyrTest
+├── config          → environment config + Rest Assured setup
+├── constants       → endpoint URLs, kept out of the service classes
+├── models          → request/response DTOs
+├── query           → BookQueryParams builder
+├── services        → AuthService, BookService, BaseService
+├── session         → TokenManager, SessionManager
+└── reporting       → Extent Reports integration
 
-✅ Extent Reports
-
-✅ Request & Response Logging
-
-✅ Data Providers
-
-✅ JSON Schema Validation
-
-✅ Retry Analyzer
-
-✅ Parallel Execution
-
-✅ Role-Based Authentication
-
-✅ Custom Annotations
-
-✅ DTO Serialization & Deserialization
-
-✅ Query Parameter Builder
-
-✅ Thread-Safe Session Management
-
-✅ Java Faker Integration
-
----
-
-# Who Is This Project For?
-
-This repository can be used as:
-
-- REST Assured Framework Template
-- API Automation Framework Template
-- Java TestNG Framework Reference Project
-- SDET Learning Project
-- API Testing Framework Example
-- Automation Framework Starter Project
-- Framework Design Reference
-- REST API Automation Project
-
----
-
-# Tech Stack
-
-- Java 17
-- Maven
-- TestNG
-- Rest Assured
-- Jackson
-- Lombok
-- Extent Reports
-- Java Faker
-- JSON Schema Validator
-
----
-
-# Covered Concepts
-
-This project covers:
-
-- REST Assured
-- API Testing
-- API Automation
-- TestNG
-- Data Providers
-- JSON Schema Validation
-- Extent Reports
-- Retry Mechanism
-- Parallel Execution
-- DTO Serialization
-- DTO Deserialization
-- Request & Response Logging
-- Framework Design
-- Custom Annotations
-- Authentication Management
-- Session Management
-- Java Automation Frameworks
-
----
-
-# Project Structure
-
-```text
-src
-├── main
-│   └── java
-│       └── com.restfulReads
-│           ├── annotations
-│           │   ├── Author
-│           │   ├── UseUser
-│           │   └── ZephyrTest
-│           │
-│           ├── config
-│           │   ├── ConfigManager
-│           │   └── RestAssuredConfig
-│           │
-│           ├── constants
-│           ├── enums
-│           │
-│           ├── models
-│           │   ├── requests
-│           │   └── responses
-│           │
-│           ├── query
-│           ├── session
-│           │   ├── SessionManager
-│           │   └── TokenManager
-│           │
-│           └── services
-│               ├── base
-│               │   └── BaseService
-│               │
-│               ├── AuthService
-│               └── BookService
-│
-└── test
-    └── java
-        └── com.restfulReads
-            ├── assertions
-            ├── base
-            ├── data
-            ├── dataproviders
-            ├── listeners
-            ├── reporting
-            └── tests
-
-src/test/resources
-├── schemas
-└── testng.xml
+src/test/java/com/restfulReads
+├── assertions      → reusable business assertions
+├── base            → BaseTest, suite-level setup
+├── data            → BookDataFactory (Faker-based)
+├── dataproviders
+├── listeners       → UserContextListener, ExtentTestListener, RetryAnalyzer, RetryTransformer
+└── tests
 ```
 
----
+## Role-based authentication and session management
 
-# Framework Architecture
+This is the part I spent the most time getting right, and it's the piece I'd point to first if you're using this as a reference for your own framework.
 
-```text
-Tests
-   │
-   ▼
-Assertions
-   │
-   ▼
-Services
-   │
-   ▼
-BaseService
-   │
-   ▼
-Rest Assured
-   │
-   ▼
-REST API
-```
-
----
-
-# Authentication Architecture
-
-The framework implements role-based authentication using cached JWT tokens.
-
-```text
-@BeforeSuite
-        │
-        ▼
-Authenticate Users
-        │
-        ▼
-TokenManager
-        │
-        ▼
-Execute Test
-        │
-        ▼
-@UseUser
-        │
-        ▼
-SessionManager
-        │
-        ▼
-Authenticated Request
-```
-
-Benefits:
-
-- Login once per suite
-- Faster execution
-- Reduced API calls
-- Cleaner test implementation
-
----
-
-# User Context Annotation
-
-## @UseUser
-
-The framework allows authentication to be defined declaratively.
-
-Example:
+At suite startup, the framework logs in as an admin and a customer once, and caches both JWT tokens through `TokenManager`. Individual tests declare which user they need with a custom annotation instead of calling login code manually:
 
 ```java
 @Test
 @UseUser(UserType.ADMIN)
-public void createBookTest() {
-
-}
+public void adminCanCreateBook() { ... }
 ```
 
-Benefits:
+A TestNG `IInvokedMethodListener` (`UserContextListener`) reads that annotation before the test method runs, sets the active user for that thread via `SessionManager`, and clears it afterward — pass, fail, or skip, doesn't matter. Getting that cleanup step right took a couple of iterations. My first pass didn't clear sessions reliably on failure, which meant a test could silently inherit the wrong user's token if it ran on a thread pool worker that had just handled a different test. Not a fun bug to chase down, glad I caught it before it caused a confusing false pass somewhere.
 
-- No manual token handling
-- Cleaner tests
-- Better readability
-- Reduced duplicate code
+If a test doesn't use `@UseUser` at all, requests go out with no Authorization header. That's intentional — it's how public-endpoint tests and unauthorized-access tests work without a separate code path or a fake "guest" user.
 
----
+Session state lives in a `ThreadLocal<String>`, which matters because the suite genuinely runs in parallel (`parallel="classes"`, 10 threads in `testng.xml`) — this isn't defensive over-engineering, it's load-bearing. Take the `ThreadLocal` out and parallel runs will leak tokens across threads.
 
-# Anonymous Requests
+## Service layer
 
-Authentication is completely optional.
+`BaseService` centralizes everything every request needs: base URI, content type, attaching the auth header when one exists, and logging the request/response into the Extent report through a custom Rest Assured filter. Every service class extends it, so none of that has to be repeated.
 
-Example:
+Currently implemented: `AuthService` (login, register) and `BookService` (get, create, update, delete, and query filtering with operators like `price[gte]` and `price[lte]`). `CartService`, `AddressService`, `RatingService`, and `UserService` exist as stubs — endpoints are mapped in constants, the service methods aren't written yet. Listed honestly here rather than implied as finished.
 
-```java
-bookService.getBooks();
+## Test data with Java Faker
+
+Faker generates realistic book payloads through `BookDataFactory`, so tests aren't full of hardcoded titles, authors, and prices. This is also what powers the data-driven tests via TestNG's `@DataProvider`.
+
+Known gap: there's no framework-level cleanup mechanism yet for data created during a run. If a test creates a book, nothing guarantees it gets deleted afterward — some of my current dependent test chains rely on a later test doing the deleting, which is fragile. A proper fix looks like a per-test registry of created resource IDs, torn down in `@AfterMethod` regardless of outcome. That's the next real infrastructure piece, not a test-writing fix.
+
+## JSON schema validation
+
+Responses are validated against JSON schemas stored under `src/test/resources/schemas`, using `rest-assured`'s `matchesJsonSchemaInClasspath`. This catches breaking API contract changes — a field renamed or a type changed — separately from functional assertions.
+
+## Reporting with Extent Reports
+
+Extent Reports generates an interactive HTML report (`test-output/ExtentReport.html`) after every run. A custom Rest Assured filter (`ExtentRestAssuredFilter`) logs the HTTP method, URI, and request/response bodies into the report for every call, so when a test fails, you can see exactly what went over the wire without re-running anything.
+
+`@Author` and `@ZephyrTest` are custom annotations that show up as metadata in the report. I added them mostly to practice thinking about test traceability the way real test-management tooling expects — this isn't wired up to an actual Zephyr or Jira instance.
+
+Reporting is also thread-safe, using a second `ThreadLocal` (`ExtentTestManager`) so parallel test execution doesn't cross-contaminate report entries between threads.
+
+## Retry handling for flaky tests
+
+Every test gets a retry analyzer applied globally through an `IAnnotationTransformer` (`RetryTransformer`, which sets `RetryAnalyzer` on every `@Test` method). `retry_count` is configurable per environment — defaults to 3 in `application-uat.properties`, overridable with `-Dretry_count`. Retries show up as warnings in the Extent report, so a retried test stays visible instead of disappearing behind a green checkmark.
+
+To actually confirm this worked rather than assuming it did, I temporarily broke a passing assertion on purpose — changed an expected status code so the test would fail every time — and watched it retry 3 times and then fail in the report as expected, before reverting it. I'd rather catch "my retry logic doesn't actually retry" this way than find out during a real flaky run in CI.
+
+Still deciding on one thing: retry currently applies to every test, not just ones prone to genuine transient failure (timeouts, connection resets). A test failing because of a real assertion bug also retries 3 times before reporting red, which just delays the signal rather than helping. Scoping retry to specific exception types is on the list.
+
+## Environment configuration
+
+`ConfigManager` reads a `-Denv` system property (defaults to `uat`) and loads the matching `application-{env}.properties` file — base URL, timeout, and retry count are all environment-scoped this way rather than hardcoded.
+
+## Running the suite
+
+```
+mvn test -Denv=uat
 ```
 
-Useful for:
+Omit `-Denv` and it falls back to `uat`.
 
-- Public endpoint validation
-- Unauthorized access testing
-- Negative test scenarios
+## Using this as a template
 
----
+If you're adapting this for your own API: the pieces that transfer directly regardless of what you're testing are `BaseService`, `SessionManager`/`TokenManager`, `UserContextListener`, and the retry/reporting listeners — none of them know anything about books specifically. The Book-specific parts (`BookService`, `BookQueryParams`, `BookDataFactory`, schemas) are the part you'd swap out for your own domain.
 
-# BaseService
+## What's not here yet
 
-All service classes inherit from `BaseService`.
-
-Responsibilities:
-
-- Base URI configuration
-- Content-Type configuration
-- Authorization management
-- Extent request/response logging
-
-Example:
-
-```java
-protected RequestSpecification request()
-```
-
-Benefits:
-
-- Centralized configuration
-- Easier maintenance
-- Reduced duplication
+- CI/CD (GitHub Actions or Jenkins)
+- Cart, Order, Address, Rating services — endpoints are mapped, services aren't written
+- A real test-data cleanup mechanism
+- Better isolation between a couple of book tests that currently share state through an instance field — works today, but it's more fragile than I'd like, and it's next on my list to fix properly
 
 ---
 
-# Request DTOs
-
-Examples:
-
-```java
-LoginRequest
-RegisterRequest
-CreateBookRequest
-```
-
-Example:
-
-```java
-CreateBookRequest request =
-        CreateBookRequest.builder()
-                .title("Clean Code")
-                .author("Robert Martin")
-                .genre("Programming")
-                .price(29.99)
-                .build();
-```
-
-Request DTOs are automatically serialized into JSON.
-
----
-
-# Response DTOs
-
-Examples:
-
-```java
-AuthToken
-Book
-```
-
-Example:
-
-```java
-Book createdBook =
-        response.as(Book.class);
-```
-
-Benefits:
-
-- Type Safety
-- Better IDE Support
-- Cleaner Assertions
-- Easier Maintenance
-
----
-
-# Query Builder
-
-## BookQueryParams
-
-Supports flexible and reusable query generation.
-
-Example:
-
-```java
-BookQueryParams queryParams =
-        BookQueryParams.builder()
-                .page(1)
-                .limit(10)
-                .author("Rick Riordan")
-                .sort("-createdAt")
-                .build();
-```
-
----
-
-# Advanced Filtering
-
-Supported Operators:
-
-- gt
-- gte
-- lt
-- lte
-
-Example:
-
-```java
-BookQueryParams queryParams =
-        BookQueryParams.builder()
-                .filters(
-                        Map.of(
-                                "price[gte]", 10,
-                                "price[lte]", 50
-                        )
-                )
-                .build();
-```
-
----
-
-# Test Data Management
-
-## BookDataFactory
-
-The framework uses Java Faker for dynamic data generation.
-
-Example:
-
-```java
-CreateBookRequest request =
-        BookDataFactory.createBook();
-```
-
-Benefits:
-
-- Dynamic datasets
-- Reduced hardcoded values
-- Improved coverage
-
----
-
-# Data Driven Testing
-
-The framework supports native TestNG Data Providers.
-
-Example:
-
-```java
-@DataProvider(name = "bookDataProvider")
-public Object[][] bookDataProvider() {
-
-    Object[][] data =
-            new Object[5][1];
-
-    for (int i = 0; i < 5; i++) {
-        data[i][0] =
-                BookDataFactory.createBook();
-    }
-
-    return data;
-}
-```
-
-Usage:
-
-```java
-@Test(
-        dataProvider = "bookDataProvider",
-        dataProviderClass =
-                BookServiceTestDataProvider.class
-)
-public void testAdminCanCreateBook(
-        CreateBookRequest request
-) {
-
-}
-```
-
-Benefits:
-
-- Increased coverage
-- Reduced duplication
-- Better scalability
-
----
-
-# Custom Assertion Layer
-
-Business assertions are separated from test implementation.
-
-Example:
-
-```java
-BookAssertion.assertValueGreaterThanOrEqualsTo(
-        prices,
-        10
-);
-```
-
-Benefits:
-
-- Reusability
-- Cleaner tests
-- Better maintainability
-
----
-
-# Schema Validation
-
-The framework validates API contracts using JSON Schemas.
-
-Schemas are stored under:
-
-```text
-src/test/resources/schemas
-```
-
-Example:
-
-```java
-response.then()
-        .body(
-                matchesJsonSchemaInClasspath(
-                        "schemas/book-schema.json"
-                )
-        );
-```
-
-Benefits:
-
-- Contract Validation
-- Response Structure Validation
-- Breaking Change Detection
-
----
-
-# Reporting
-
-## Extent Reports
-
-The framework integrates Extent Reports to produce interactive HTML reports.
-
-Generated Report:
-
-```text
-test-output/ExtentReport.html
-```
-
-The report includes:
-
-- Pass/Fail/Skip Status
-- Execution Duration
-- Author Information
-- Zephyr References
-- Categories
-- Stack Traces
-- Request & Response Logs
-
----
-
-# Reporting Architecture
-
-```text
-Test Execution
-        │
-        ▼
-ExtentTestListener
-        │
-        ▼
-ExtentManager
-        │
-        ▼
-ExtentTestManager
-        │
-        ▼
-Extent Report
-```
-
----
-
-## Request & Response Logging
-
-Every request and response is automatically published to Extent.
-
-Captured Information:
-
-- HTTP Method
-- URI
-- Headers
-- Request Payload
-- Response Status
-- Response Payload
-
-Example:
-
-```text
-Request
---------
-POST /api/books
-
-{
-  ...
-}
-
-Response
----------
-201
-
-{
-  ...
-}
-```
-
-This significantly improves debugging and failure analysis.
-
----
-
-# Retry Mechanism
-
-The framework includes automatic retry support for transient failures.
-
-Components:
-
-```text
-RetryAnalyzer
-RetryTransformer
-```
-
-Benefits:
-
-- Reduces flaky failures
-- Better CI reliability
-- Minimal test maintenance
-
----
-
-# Test Metadata
-
-## @Author
-
-Provides ownership information.
-
-Example:
-
-```java
-@Test
-@Author("Siddharth Malviya")
-public void createBookTest() {
-
-}
-```
-
-Appears directly in Extent Reports.
-
----
-
-## @ZephyrTest
-
-Provides test management linkage.
-
-Example:
-
-```java
-@Test
-@ZephyrTest("BOOKS_101")
-public void createBookTest() {
-
-}
-```
-
-Appears directly in Extent Reports.
-
-Future integrations:
-
-- Zephyr
-- Jira
-- Azure Test Plans
-
----
-
-# Test Categorization
-
-Supports native TestNG Groups.
-
-Example:
-
-```java
-@Test(
-        groups = {
-                "smoke",
-                "critical",
-                "books"
-        }
-)
-```
-
-Categories automatically appear in Extent Reports.
-
----
-
-# Parallel Execution
-
-The framework supports parallel execution.
-
-Thread safety is achieved using:
-
-```java
-ThreadLocal
-```
-
-within:
-
-- SessionManager
-- ExtentTestManager
-
-Benefits:
-
-- Improved execution speed
-- Better scalability
-- Safe parallel reporting
-
----
-
-# Example Test
-
-```java
-@Test(
-        description = "Admin can create a new book"
-)
-@Author("Siddharth Malviya")
-@ZephyrTest("BOOKS_105")
-@UseUser(UserType.ADMIN)
-public void testAdminCanCreateBook(
-        CreateBookRequest request
-) {
-
-    Book createdBook =
-            bookService.createBook(request)
-                    .then()
-                    .statusCode(201)
-                    .extract()
-                    .as(Book.class);
-
-    Assert.assertNotNull(
-            createdBook.getId()
-    );
-}
-```
-
----
-
-# Current Capabilities
-
-✅ REST Assured Framework
-
-✅ API Automation Framework
-
-✅ Java + TestNG Architecture
-
-✅ Service Layer Architecture
-
-✅ DTO Serialization
-
-✅ DTO Deserialization
-
-✅ Role-Based Authentication
-
-✅ TokenManager
-
-✅ SessionManager
-
-✅ @UseUser Annotation
-
-✅ Query Parameter Builder
-
-✅ Dynamic Query Filtering
-
-✅ Java Faker Integration
-
-✅ Data Providers
-
-✅ JSON Schema Validation
-
-✅ Request & Response Logging
-
-✅ Extent Reports
-
-✅ @Author Annotation
-
-✅ @ZephyrTest Annotation
-
-✅ Test Categorization
-
-✅ Retry Analyzer
-
-✅ Retry Transformer
-
-✅ Parallel Execution Support
-
-✅ Anonymous Request Support
-
-✅ Assertion Layer
-
----
-
-# Roadmap
-
-## CI/CD
-
-⬜ Docker Support
-
-⬜ Jenkins Integration
-
-⬜ GitHub Actions
-
-⬜ Azure DevOps Pipelines
-
----
-
-## Quality & Validation
-
-⬜ Checkstyle Integration
-
-⬜ Database Validation
-
-⬜ Extended Contract Testing
-
----
-
-## Framework Enhancements
-
-⬜ Environment Profiles
-
-⬜ Excel-Based Data Providers
-
-⬜ Centralized Test Data Repository
-
-⬜ Custom Retry Configuration
-
----
-
-# Keywords
-
-REST Assured Framework
-
-REST Assured Framework Template
-
-API Automation Framework
-
-Java API Automation Framework
-
-REST Assured Project
-
-REST Assured GitHub Project
-
-TestNG Framework
-
-SDET Framework
-
-Automation Testing Framework
-
-API Testing Framework
-
-Java Test Automation
-
-REST API Testing
-
-Automation Framework Template
-
-Senior SDET Project
-
-Java TestNG Automation Framework
-
----
-
-# Learning Objectives
-
-This project is being developed to strengthen expertise in:
-
-- API Automation
-- Rest Assured
-- Framework Design
-- TestNG Internals
-- Reporting
-- Session Management
-- Data Driven Testing
-- Parallel Execution
-- Contract Validation
-- Custom Annotations
-- CI/CD
-- Docker
-- Jenkins
-- Senior SDET Practices
+Still very much a work in progress — I'm adding to this as I learn, and the gaps listed above are known weak spots I'm actively working through, not blind spots I've missed.
