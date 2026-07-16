@@ -20,5 +20,4 @@ public class CreateBookRequest {
     private Double price;
 
 
-
 }

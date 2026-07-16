@@ -8,7 +8,10 @@ import com.restfulReads.listeners.RetryTransformer;
 import com.restfulReads.listeners.UserContextListener;
 import com.restfulReads.models.requests.LoginRequest;
 import com.restfulReads.services.AuthService;
+import com.restfulReads.services.BookService;
+import com.restfulReads.services.CartService;
 import com.restfulReads.session.TokenManager;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Listeners;
@@ -20,6 +23,8 @@ import org.testng.annotations.Listeners;
         RetryTransformer.class
 })
 public class BaseTest {
+    protected CartService cartService;
+    protected BookService bookService;
 
     @BeforeSuite
     public void initializeUsers() {
@@ -48,5 +53,11 @@ public class BaseTest {
     @BeforeTest
     public void setup() {
         RestAssuredConfig.enableLogging();
+    }
+
+    @BeforeMethod
+    public void initServices() {
+        cartService = new CartService();
+        bookService = new BookService();
     }
 }
