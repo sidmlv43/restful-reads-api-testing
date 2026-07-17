@@ -1,114 +1,643 @@
-# Restful Reads — Rest Assured API Automation Framework
+# Restful Reads — REST Assured API Automation Framework Template
 
-A Java + Rest Assured + TestNG API automation framework built for the Restful Reads app. It covers role-based JWT authentication, thread-safe parallel execution, JSON schema validation, data-driven testing with Java Faker, retry handling for flaky tests, and Extent Reports for reporting.
+A Java + REST Assured + TestNG API automation framework built for the Restful Reads application. The framework includes role-based authentication, user-pool based session management, thread-safe parallel execution, JSON schema validation, data-driven testing with Java Faker, retry handling for flaky tests, request/response logging, and Extent Reports for reporting.
 
-I built this to actually learn how a senior SDET puts a framework together — not to write a pile of tests that hit endpoints and check status codes. I'm about a year into my career as an automation engineer, and this project is where I push past what my day job requires.
+I built this to actually learn how a senior SDET puts a framework together, not to write a pile of tests that hit endpoints and check status codes. I'm about a year into my career as an automation engineer, and this project is where I push past what my day job requires.
 
-If you're looking for a Rest Assured + TestNG framework template with role-based auth, thread-safe session handling, and Extent reporting already wired up, feel free to fork this and adapt it — the sections below walk through how each piece works and why it's built that way, so you're not just copying code you don't understand.
-
-## Why this exists
-
-Most tutorial-following frameworks I'd built before this had one big flaw: everything worked as long as you ran one test at a time. The moment you tried running tests in parallel, or testing what happens when a customer — not an admin — hits a protected endpoint, the whole thing fell apart. This project exists to fix that properly, and to document each decision as I made it, including the ones I got wrong the first time.
-
-## Tech stack
-
-Java 17, Maven, TestNG, Rest Assured, Lombok, Jackson, Extent Reports, Java Faker.
-
-## Project structure
-
-```
-src/main/java/com/restfulReads
-├── annotations     → @UseUser, @Author, @ZephyrTest
-├── config          → environment config + Rest Assured setup
-├── constants       → endpoint URLs, kept out of the service classes
-├── models          → request/response DTOs
-├── query           → BookQueryParams builder
-├── services        → AuthService, BookService, BaseService
-├── session         → TokenManager, SessionManager
-└── reporting       → Extent Reports integration
-
-src/test/java/com/restfulReads
-├── assertions      → reusable business assertions
-├── base            → BaseTest, suite-level setup
-├── data            → BookDataFactory (Faker-based)
-├── dataproviders
-├── listeners       → UserContextListener, ExtentTestListener, RetryAnalyzer, RetryTransformer
-└── tests
-```
-
-## Role-based authentication and session management
-
-This is the part I spent the most time getting right, and it's the piece I'd point to first if you're using this as a reference for your own framework.
-
-At suite startup, the framework logs in as an admin and a customer once, and caches both JWT tokens through `TokenManager`. Individual tests declare which user they need with a custom annotation instead of calling login code manually:
-
-```java
-@Test
-@UseUser(UserType.ADMIN)
-public void adminCanCreateBook() { ... }
-```
-
-A TestNG `IInvokedMethodListener` (`UserContextListener`) reads that annotation before the test method runs, sets the active user for that thread via `SessionManager`, and clears it afterward — pass, fail, or skip, doesn't matter. Getting that cleanup step right took a couple of iterations. My first pass didn't clear sessions reliably on failure, which meant a test could silently inherit the wrong user's token if it ran on a thread pool worker that had just handled a different test. Not a fun bug to chase down, glad I caught it before it caused a confusing false pass somewhere.
-
-If a test doesn't use `@UseUser` at all, requests go out with no Authorization header. That's intentional — it's how public-endpoint tests and unauthorized-access tests work without a separate code path or a fake "guest" user.
-
-Session state lives in a `ThreadLocal<String>`, which matters because the suite genuinely runs in parallel (`parallel="classes"`, 10 threads in `testng.xml`) — this isn't defensive over-engineering, it's load-bearing. Take the `ThreadLocal` out and parallel runs will leak tokens across threads.
-
-## Service layer
-
-`BaseService` centralizes everything every request needs: base URI, content type, attaching the auth header when one exists, and logging the request/response into the Extent report through a custom Rest Assured filter. Every service class extends it, so none of that has to be repeated.
-
-Currently implemented: `AuthService` (login, register) and `BookService` (get, create, update, delete, and query filtering with operators like `price[gte]` and `price[lte]`). `CartService`, `AddressService`, `RatingService`, and `UserService` exist as stubs — endpoints are mapped in constants, the service methods aren't written yet. Listed honestly here rather than implied as finished.
-
-## Test data with Java Faker
-
-Faker generates realistic book payloads through `BookDataFactory`, so tests aren't full of hardcoded titles, authors, and prices. This is also what powers the data-driven tests via TestNG's `@DataProvider`.
-
-Known gap: there's no framework-level cleanup mechanism yet for data created during a run. If a test creates a book, nothing guarantees it gets deleted afterward — some of my current dependent test chains rely on a later test doing the deleting, which is fragile. A proper fix looks like a per-test registry of created resource IDs, torn down in `@AfterMethod` regardless of outcome. That's the next real infrastructure piece, not a test-writing fix.
-
-## JSON schema validation
-
-Responses are validated against JSON schemas stored under `src/test/resources/schemas`, using `rest-assured`'s `matchesJsonSchemaInClasspath`. This catches breaking API contract changes — a field renamed or a type changed — separately from functional assertions.
-
-## Reporting with Extent Reports
-
-Extent Reports generates an interactive HTML report (`test-output/ExtentReport.html`) after every run. A custom Rest Assured filter (`ExtentRestAssuredFilter`) logs the HTTP method, URI, and request/response bodies into the report for every call, so when a test fails, you can see exactly what went over the wire without re-running anything.
-
-`@Author` and `@ZephyrTest` are custom annotations that show up as metadata in the report. I added them mostly to practice thinking about test traceability the way real test-management tooling expects — this isn't wired up to an actual Zephyr or Jira instance.
-
-Reporting is also thread-safe, using a second `ThreadLocal` (`ExtentTestManager`) so parallel test execution doesn't cross-contaminate report entries between threads.
-
-## Retry handling for flaky tests
-
-Every test gets a retry analyzer applied globally through an `IAnnotationTransformer` (`RetryTransformer`, which sets `RetryAnalyzer` on every `@Test` method). `retry_count` is configurable per environment — defaults to 3 in `application-uat.properties`, overridable with `-Dretry_count`. Retries show up as warnings in the Extent report, so a retried test stays visible instead of disappearing behind a green checkmark.
-
-To actually confirm this worked rather than assuming it did, I temporarily broke a passing assertion on purpose — changed an expected status code so the test would fail every time — and watched it retry 3 times and then fail in the report as expected, before reverting it. I'd rather catch "my retry logic doesn't actually retry" this way than find out during a real flaky run in CI.
-
-Still deciding on one thing: retry currently applies to every test, not just ones prone to genuine transient failure (timeouts, connection resets). A test failing because of a real assertion bug also retries 3 times before reporting red, which just delays the signal rather than helping. Scoping retry to specific exception types is on the list.
-
-## Environment configuration
-
-`ConfigManager` reads a `-Denv` system property (defaults to `uat`) and loads the matching `application-{env}.properties` file — base URL, timeout, and retry count are all environment-scoped this way rather than hardcoded.
-
-## Running the suite
-
-```
-mvn test -Denv=uat
-```
-
-Omit `-Denv` and it falls back to `uat`.
-
-## Using this as a template
-
-If you're adapting this for your own API: the pieces that transfer directly regardless of what you're testing are `BaseService`, `SessionManager`/`TokenManager`, `UserContextListener`, and the retry/reporting listeners — none of them know anything about books specifically. The Book-specific parts (`BookService`, `BookQueryParams`, `BookDataFactory`, schemas) are the part you'd swap out for your own domain.
-
-## What's not here yet
-
-- CI/CD (GitHub Actions or Jenkins)
-- Cart, Order, Address, Rating services — endpoints are mapped, services aren't written
-- A real test-data cleanup mechanism
-- Better isolation between a couple of book tests that currently share state through an instance field — works today, but it's more fragile than I'd like, and it's next on my list to fix properly
+If you're looking for a REST Assured + TestNG framework template with role-based authentication, thread-safe session handling, user pooling, parallel execution support, and Extent reporting already wired up, feel free to fork this and adapt it. The sections below walk through how each piece works and why it's built that way, so you're not just copying code you don't understand.
 
 ---
 
-Still very much a work in progress — I'm adding to this as I learn, and the gaps listed above are known weak spots I'm actively working through, not blind spots I've missed.
+## Current Framework Capabilities
+
+✅ Role-Based Authentication
+
+✅ UserPool-Based Session Management
+
+✅ Thread-Safe Parallel Execution
+
+✅ REST Assured Service Layer
+
+✅ DTO Serialization & Deserialization
+
+✅ Request/Response Logging
+
+✅ Extent Reports
+
+✅ Retry Analyzer
+
+✅ Data Providers
+
+✅ JSON Schema Validation
+
+✅ Custom Test Metadata
+
+✅ Java Faker Test Data Generation
+
+✅ Query Parameter Builder
+
+✅ Custom Assertion Layer
+
+✅ User Isolation During Parallel Execution
+
+---
+
+## Why this exists
+
+Most tutorial-following frameworks I'd built before this had one big flaw: everything worked as long as you ran one test at a time. The moment you tried running tests in parallel, or testing what happens when a customer, not an admin, hits a protected endpoint, the whole thing fell apart.
+
+This project exists to fix that properly and to document each decision as I made it, including the ones I got wrong the first time.
+
+As the framework grew, I discovered another problem. Running multiple user journeys in parallel meant different tests were competing for the same customer account. Cart state, addresses, and future order data all became shared state that could make tests influence one another.
+
+That problem led to the introduction of a UserPool, which is currently one of the most important architectural pieces of the framework.
+
+---
+
+## Tech stack
+
+- Java 17
+- Maven
+- TestNG
+- REST Assured
+- Jackson
+- Lombok
+- Extent Reports
+- Java Faker
+- JSON Schema Validator
+
+---
+
+## Project structure
+
+```text
+src/main/java/com/restfulReads
+├── annotations
+│   ├── @UseUser
+│   ├── @Author
+│   └── @ZephyrTest
+│
+├── config
+│   ├── ConfigManager
+│   └── RestAssuredConfig
+│
+├── constants
+│
+├── enums
+│
+├── models
+│   ├── requests
+│   └── responses
+│
+├── query
+│   └── BookQueryParams
+│
+├── reporting
+│
+├── services
+│   ├── BaseService
+│   ├── AuthService
+│   ├── BookService
+│   ├── CartService
+│   ├── AddressService
+│   ├── RatingService
+│   └── UserService
+│
+└── session
+    ├── User
+    ├── UserCredential
+    ├── UserPool
+    ├── UserPoolInitializer
+    └── SessionManager
+
+
+src/test/java/com/restfulReads
+├── assertions
+├── base
+├── data
+├── dataproviders
+├── listeners
+│   ├── UserContextListener
+│   ├── ExtentTestListener
+│   ├── RetryAnalyzer
+│   └── RetryTransformer
+│
+└── tests
+```
+
+---
+
+## Role-based authentication, session management, and user pooling
+
+This is the part I spent the most time getting right, and it's the piece I'd point to first if you're using this project as a reference for your own framework.
+
+Early versions of the framework authenticated a single Admin user and a single Customer user at suite startup. Those tokens were stored and reused throughout execution.
+
+That worked perfectly fine for CRUD-style API tests.
+
+It broke down once I started thinking about user journeys.
+
+Consider:
+
+- Cart workflows
+- Checkout workflows
+- Address management
+- Order history
+- Product ratings
+
+Using a single shared customer account means every test is modifying the same user state.
+
+One test adds items to the cart.
+
+Another test expects an empty cart.
+
+A third test creates an address.
+
+Now you've got debugging sessions that feel more like archaeology than testing.
+
+To solve this, I introduced a UserPool.
+
+At suite startup, the framework logs in:
+
+- 20 Admin users
+- 20 Customer users
+
+and stores them in separate pools.
+
+Internally, the implementation uses:
+
+```java
+Map<UserType, BlockingQueue<User>>
+```
+
+Each authenticated user contains:
+
+```java
+email
+password
+token
+userType
+```
+
+Tests still declare permissions using the same annotation:
+
+```java
+@Test
+@UseUser(UserType.CUSTOMER)
+public void customerCanAddItemsToCart() {
+
+}
+```
+
+The execution flow now looks like this:
+
+```text
+@UseUser(CUSTOMER)
+         │
+         ▼
+UserContextListener
+         │
+         ▼
+UserPool.acquire(CUSTOMER)
+         │
+         ▼
+SessionManager
+         │
+         ▼
+API Requests
+         │
+         ▼
+Test Complete
+         │
+         ▼
+UserPool.release(user)
+```
+
+A user can only belong to one active test at a time.
+
+This dramatically reduces the chance of parallel tests interfering with one another through:
+
+- Cart state
+- Addresses
+- Orders
+- Ratings
+- User-specific resources
+
+It also allows the framework to scale far beyond the original "one admin, one customer" design without changing test code.
+
+---
+
+## SessionManager
+
+Session state is managed through:
+
+```java
+ThreadLocal<User>
+```
+
+instead of:
+
+```java
+ThreadLocal<String>
+```
+
+The active session now stores the entire authenticated user rather than only a JWT token.
+
+That gives the framework access to:
+
+- Email
+- Password
+- Token
+- UserType
+
+for the currently executing thread.
+
+The switch became necessary once UserPool-based execution was introduced.
+
+Without ThreadLocal, parallel execution would leak session data between worker threads.
+
+This isn't defensive over-engineering anymore. It's load-bearing infrastructure.
+
+---
+
+## Service layer
+
+`BaseService` centralizes everything every request needs:
+
+- Base URI configuration
+- Content-Type configuration
+- Authorization header injection
+- Request/response logging
+
+Every service class extends it, which means those concerns only need to be implemented once.
+
+The framework currently contains:
+
+### Implemented
+
+- AuthService
+- BookService
+- CartService
+
+### In Progress
+
+- AddressService
+- RatingService
+- UserService
+
+The endpoints have already been mapped in constants. Some service implementations are still being built out.
+
+Listed honestly here rather than implied as complete.
+
+---
+
+## Request and response DTOs
+
+The framework uses dedicated DTOs for requests and responses.
+
+Example request object:
+
+```java
+CreateBookRequest.builder()
+        .title("Clean Code")
+        .author("Robert Martin")
+        .price(29.99)
+        .build();
+```
+
+Requests are automatically serialized into JSON using Jackson.
+
+Responses are mapped back into Java objects:
+
+```java
+Book book =
+        response.as(Book.class);
+```
+
+Benefits:
+
+- Type safety
+- Cleaner assertions
+- Better IDE support
+- Easier maintenance
+
+---
+
+## Query builder support
+
+Book search requests use a builder pattern.
+
+Example:
+
+```java
+BookQueryParams params =
+        BookQueryParams.builder()
+                .author("Rick Riordan")
+                .page(1)
+                .limit(10)
+                .build();
+```
+
+Advanced filtering is also supported:
+
+```java
+BookQueryParams.builder()
+        .filters(
+                Map.of(
+                        "price[gte]", 10,
+                        "price[lte]", 50
+                )
+        )
+        .build();
+```
+
+Supported operators:
+
+- gt
+- gte
+- lt
+- lte
+
+---
+
+## Test data with Java Faker
+
+Faker generates realistic book payloads through `BookDataFactory`, so tests aren't full of hardcoded titles, authors, and prices.
+
+This is also what powers the data-driven tests via TestNG Data Providers.
+
+Example:
+
+```java
+CreateBookRequest request =
+        BookDataFactory.createBook();
+```
+
+Known gap:
+
+There's still no framework-level cleanup mechanism for resources created during execution.
+
+If a test creates a book, nothing currently guarantees it gets deleted.
+
+My plan is to introduce a framework-managed test resource registry that tracks created entities and automatically cleans them up after execution.
+
+That feels like a framework problem, not a test-writing problem.
+
+---
+
+## Data-driven testing
+
+The framework supports TestNG Data Providers.
+
+Example:
+
+```java
+@Test(
+        dataProvider = "bookDataProvider",
+        dataProviderClass =
+                BookServiceDataProvider.class
+)
+public void testAdminCanCreateBook(
+        CreateBookRequest request
+) {
+
+}
+```
+
+This allows a single test implementation to execute against multiple datasets without duplicating code.
+
+---
+
+## JSON schema validation
+
+Responses are validated against schemas stored under:
+
+```text
+src/test/resources/schemas
+```
+
+using:
+
+```java
+matchesJsonSchemaInClasspath(...)
+```
+
+This catches API contract regressions separately from business assertions.
+
+Examples:
+
+- Missing fields
+- Incorrect data types
+- Unexpected response structures
+
+---
+
+## Reporting with Extent Reports
+
+Extent Reports generates an interactive HTML report:
+
+```text
+test-output/ExtentReport.html
+```
+
+The framework captures:
+
+- Pass / Fail / Skip status
+- Stack traces
+- Categories
+- Author metadata
+- Zephyr references
+- Request logs
+- Response logs
+
+A custom REST Assured filter (`ExtentRestAssuredFilter`) automatically writes request and response information directly into the report.
+
+So when a test fails, you can immediately see:
+
+```text
+HTTP Method
+URI
+Request Body
+Response Status
+Response Body
+```
+
+without rerunning the test.
+
+---
+
+## Test metadata
+
+The framework supports custom metadata annotations:
+
+### @Author
+
+```java
+@Test
+@Author("Siddharth Malviya")
+public void createBookTest() {
+
+}
+```
+
+### @ZephyrTest
+
+```java
+@Test
+@ZephyrTest("BOOKS_101")
+public void createBookTest() {
+
+}
+```
+
+These are currently used for reporting.
+
+The longer-term goal is to make integration with tools like Zephyr, Jira, or Azure Test Plans easier if needed.
+
+---
+
+## Retry handling for flaky tests
+
+Every test automatically receives retry support through:
+
+```java
+RetryAnalyzer
+```
+
+which is applied globally through:
+
+```java
+RetryTransformer
+```
+
+The current retry count is configurable through:
+
+```properties
+retry_count=3
+```
+
+or:
+
+```bash
+mvn test -Dretry_count=5
+```
+
+Retries appear directly in the Extent Report.
+
+To validate the implementation, I intentionally broke passing tests and confirmed they retried the expected number of times before failing.
+
+One thing I'm still evaluating:
+
+Retries currently apply to every failure.
+
+That's convenient, but it's not always useful.
+
+A genuine assertion bug generally doesn't become less wrong on the third attempt.
+
+I may eventually restrict retries to transient failures only.
+
+---
+
+## Parallel execution
+
+The suite runs using:
+
+```xml
+parallel="classes"
+```
+
+with multiple worker threads.
+
+Thread safety currently relies on:
+
+```java
+ThreadLocal<User>
+```
+
+for user sessions and:
+
+```java
+ThreadLocal<ExtentTest>
+```
+
+for reporting.
+
+Without those two mechanisms, parallel execution would quickly start corrupting user state and report entries.
+
+---
+
+## Environment configuration
+
+`ConfigManager` reads:
+
+```bash
+-Denv=uat
+```
+
+and loads:
+
+```text
+application-uat.properties
+```
+
+Configuration values such as:
+
+- Base URL
+- Timeout values
+- Retry count
+
+are environment-specific rather than hardcoded.
+
+---
+
+## Running the suite
+
+```bash
+mvn test -Denv=uat
+```
+
+If no environment is provided:
+
+```text
+uat
+```
+
+is used as the default.
+
+---
+
+## Using this as a template
+
+If you're adapting this framework for your own API, the most reusable pieces are:
+
+- BaseService
+- UserPool
+- SessionManager
+- UserContextListener
+- RetryTransformer
+- RetryAnalyzer
+- Extent Reporting
+- Request/Response Logging
+- DTO Architecture
+
+The Book-specific pieces are simply example domain implementations that can be swapped out for your own services and models.
+
+---
+
+## What's not here yet
+
+- Docker support
+- Jenkins / CI integration
+- Framework-managed test data provisioning
+- Automated test-data cleanup
+- Database verification layer
+- Contract testing enhancements
+- Checkout journey automation
+- Order journey automation
+- Address journey automation
+
+---
+
+Still very much a work in progress.
+
+I'm adding to this as I learn, and the gaps listed above are known weak spots I'm actively working through, not blind spots I've missed.
