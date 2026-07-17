@@ -7,7 +7,6 @@ import com.restfulReads.enums.UserType;
 import com.restfulReads.models.requests.AddItemToCartRequest;
 import com.restfulReads.models.responses.cart.Cart;
 import com.restfulReads.query.BookQueryParams;
-import com.restfulReads.services.BookService;
 import com.restfulReads.services.CartService;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;

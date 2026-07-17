@@ -3,6 +3,8 @@ package com.restfulReads.listeners;
 import com.restfulReads.annotations.UseUser;
 import com.restfulReads.enums.UserType;
 import com.restfulReads.session.SessionManager;
+import com.restfulReads.session.User;
+import com.restfulReads.session.UserPool;
 import org.testng.IInvokedMethod;
 import org.testng.IInvokedMethodListener;
 import org.testng.ITestResult;
@@ -29,15 +31,32 @@ public class UserContextListener implements IInvokedMethodListener {
         }
 
         UserType userType = annotation.value();
-        SessionManager.use(userType);
+        User user = UserPool.acquire(userType);
+
+        SessionManager.use(user);
+
+        System.out.printf(
+                "ACQUIRED -> %s (%s)%n",
+                user.getEmail(),
+                user.getUserType()
+        );
+
     }
 
     @Override
-    public void afterInvocation(IInvokedMethod method, ITestResult testResult) {
+    public void afterInvocation(
+            IInvokedMethod method,
+            ITestResult testResult
+    ) {
 
         if (!method.isTestMethod()) {
             return;
         }
+
+        User currentUser =
+                SessionManager.getCurrentUser();
+
+        UserPool.release(currentUser);
 
         SessionManager.clear();
     }

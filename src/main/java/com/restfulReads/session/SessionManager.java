@@ -4,32 +4,26 @@ import com.restfulReads.enums.UserType;
 
 public final class SessionManager {
 
-    private static final ThreadLocal<String> ACTIVE_TOKEN =
-            new ThreadLocal<>();
+    private static final ThreadLocal<User> CURRENT_USER = new ThreadLocal<>();
+
 
     private SessionManager() {}
 
-    public static void use(UserType userType) {
 
-        String token = TokenManager.get(userType);
+    public static void use(User user) {
+        CURRENT_USER.set(user);
+    }
 
-        ACTIVE_TOKEN.set(token);
+    public static User getCurrentUser() {
+        return CURRENT_USER.get();
     }
 
     public static String getToken() {
-
-        String token = ACTIVE_TOKEN.get();
-
-//        if (token == null || token.isEmpty()) {
-//            throw new RuntimeException(
-//                    "No active session found. Call SessionManager.use() first."
-//            );
-//        }
-
-        return token;
+        User currentUser = CURRENT_USER.get();
+        return currentUser == null ? null : currentUser.getToken();
     }
 
     public static void clear() {
-        ACTIVE_TOKEN.remove();
+        CURRENT_USER.remove();
     }
 }

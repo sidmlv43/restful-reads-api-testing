@@ -5,6 +5,8 @@ import com.restfulReads.annotations.Author;
 import com.restfulReads.annotations.ZephyrTest;
 import com.restfulReads.reporting.ExtentManager;
 import com.restfulReads.reporting.ExtentTestManager;
+import com.restfulReads.session.SessionManager;
+import com.restfulReads.session.User;
 import org.testng.ITestContext;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
@@ -46,6 +48,12 @@ public class ExtentTestListener implements ITestListener {
                     "Zephyr Test Case: "
                             + zephyrTest.value()
             );
+        }
+
+        User currentUser = SessionManager.getCurrentUser();
+        System.out.println("current user = " + currentUser);
+        if(currentUser != null) {
+            test.info(String.format("Using user: %s", currentUser.getEmail()));
         }
 
         String[] groups = result.getMethod().getGroups();
