@@ -93,14 +93,14 @@ public class BookServiceTest extends BaseTest {
                 .page(1)
                 .limit(10)
                 .filters(
-                        Map.of("price[lte]", 10)
+                        Map.of("price[lte]", 40)
                 ).build();
 
 
 
         Response res = bookService.getBooks(queryParams);
         List<Double> prices = res.jsonPath().getList("results.price", Double.class);
-        BookAssertion.assertValueLessThanOrEqualsTo(prices, 10);
+        BookAssertion.assertValueLessThanOrEqualsTo(prices, 40);
 
 
     }
@@ -195,6 +195,8 @@ public class BookServiceTest extends BaseTest {
                 .statusCode(403)
                 .body("message", equalTo("Not found"))
                 .body("details", nullValue());
+
+        // deliberate wrong status code in assertion to simulate failure
     }
 
 
