@@ -16,6 +16,7 @@ public class BookDataFactory {
                 .title(FAKER.book().title())
                 .author(FAKER.book().author())
                 .genre(FAKER.book().genre())
+                .description(FAKER.lorem().characters(40))
                 .price(
                         FAKER.number()
                                 .randomDouble(2, 10, 100)

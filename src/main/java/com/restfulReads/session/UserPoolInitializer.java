@@ -9,29 +9,77 @@ import java.util.List;
 
 public class UserPoolInitializer {
 
-    private UserPoolInitializer () {
+    private UserPoolInitializer() {
 
     }
 
     public static void initialize() {
+
         AuthService authService = new AuthService();
-        List<UserCredential> userCredentials = loadCredentials();
+
+        List<UserCredential> userCredentials =
+                loadCredentials();
+
+        System.out.printf(
+                "Initializing User Pool with %d users%n",
+                userCredentials.size()
+        );
+
         userCredentials.forEach(cred -> {
-            String token = authService.login(
-                    LoginRequest.builder()
-                            .email(cred.getEmail())
-                            .password(cred.getPassword())
-                            .build()
-            );
-            UserPool.register(
-                    User
-                            .builder()
-                            .userType(cred.getUserType())
-                            .email(cred.getEmail())
-                            .password(cred.getPassword())
-                            .token(token)
-                            .build());
+
+            try {
+
+                System.out.printf(
+                        "Authenticating -> %s (%s)%n",
+                        cred.getEmail(),
+                        cred.getUserType()
+                );
+
+                String token =
+                        authService.login(
+                                LoginRequest.builder()
+                                        .email(
+                                                cred.getEmail()
+                                        )
+                                        .password(
+                                                cred.getPassword()
+                                        )
+                                        .build()
+                        );
+
+                UserPool.register(
+                        User.builder()
+                                .userType(
+                                        cred.getUserType()
+                                )
+                                .email(
+                                        cred.getEmail()
+                                )
+                                .password(
+                                        cred.getPassword()
+                                )
+                                .token(token)
+                                .build()
+                );
+
+                System.out.printf(
+                        "Authenticated -> %s%n",
+                        cred.getEmail()
+                );
+
+            } catch (Exception e) {
+
+                System.err.printf(
+                        "Failed to authenticate -> %s (%s)%n",
+                        cred.getEmail(),
+                        cred.getUserType()
+                );
+
+                throw e;
+            }
         });
+
+        System.out.println("User Pool Initialized Successfully");
     }
 
     private static List<UserCredential> loadCredentials() {
@@ -75,5 +123,4 @@ public class UserPoolInitializer {
 
         return credentials;
     }
-
 }

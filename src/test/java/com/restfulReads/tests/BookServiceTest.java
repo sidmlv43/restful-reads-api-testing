@@ -6,6 +6,7 @@ import com.restfulReads.annotations.ZephyrTest;
 import com.restfulReads.assertions.BookAssertion;
 import com.restfulReads.base.BaseTest;
 import com.restfulReads.data.BookDataFactory;
+import com.restfulReads.data.FileDataFactory;
 import com.restfulReads.dataproviders.BookServiceTestDataProvider;
 import com.restfulReads.enums.UserType;
 import com.restfulReads.models.requests.CreateBookRequest;
@@ -111,7 +112,7 @@ public class BookServiceTest extends BaseTest {
     @ZephyrTest(value = "BOOKS_104")
     @UseUser(UserType.CUSTOMER)
     public void testCustomerCannotAddBook() {
-        bookService.createBook(BookDataFactory.createBook())
+        bookService.createBook(BookDataFactory.createBook(), FileDataFactory.getBookImages(2))
                 .then()
                 .statusCode(403)
                 .body(containsString("Forbidden"))
@@ -132,7 +133,7 @@ public class BookServiceTest extends BaseTest {
             CreateBookRequest request
     ) {
 
-        Book book = bookService.createBook(request)
+        Book book = bookService.createBook(request, FileDataFactory.getBookImages(4))
                 .then()
                 .statusCode(201)
                 .body("_id", notNullValue())
@@ -221,7 +222,7 @@ public class BookServiceTest extends BaseTest {
     @ZephyrTest(value = "BOOKS_109")
     @Test(description = "Anonymous User should not create a new book.")
     public void anonymousUserCannotAddBookTest() {
-        bookService.createBook(BookDataFactory.createBook())
+        bookService.createBook(BookDataFactory.createBook(), FileDataFactory.getBookImages(5))
                 .then()
                 .statusCode(401)
                 .body("message", containsString("denied"))

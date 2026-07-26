@@ -13,11 +13,12 @@ public class CreateBookRequest {
 
     private String title;
 
+    private String description;
+
     private String author;
 
     private String genre;
 
-    private Double price;
-
+    private double price;
 
 }
