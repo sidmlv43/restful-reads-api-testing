@@ -8,6 +8,7 @@ import com.restfulReads.models.requests.AddItemToCartRequest;
 import com.restfulReads.models.responses.cart.Cart;
 import com.restfulReads.query.BookQueryParams;
 import com.restfulReads.services.CartService;
+import com.restfulReads.testgroups.TestGroups;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -26,7 +27,14 @@ public class UserJourneyTests extends BaseTest {
         cartService = new CartService();
     }
 
-    @Test(description = "Customer can check his cart")
+    @Test(
+            testName = "Customer can check his cart",
+            groups = {
+                    TestGroups.CART,
+                    TestGroups.API_SEV1,
+                    TestGroups.API_REGRESSION
+            }
+    )
     @Author("Siddharth Malviya")
     @UseUser(UserType.CUSTOMER)
     public void testUserCart() {
@@ -40,7 +48,14 @@ public class UserJourneyTests extends BaseTest {
 
 
 
-    @Test(description = "Test Customer can add items in cart")
+    @Test(
+            testName = "Test Customer can add items in cart",
+            groups = {
+                    TestGroups.CART,
+                    TestGroups.API_SMOKE,
+                    TestGroups.API_REGRESSION
+            }
+    )
     @Author("Siddharth Malviya")
     @UseUser(UserType.CUSTOMER)
     public void tetsCustomerCanAddItemsInCart() {

@@ -95,7 +95,9 @@ public class UserPoolInitializer {
                         .build()
         );
 
-        for (int i = 2; i <= 20; i++) {
+        int max_users = Integer.parseInt(System.getProperty("thread-count", "5")) + 2;
+
+        for (int i = 2; i <= max_users; i++) {
 
             credentials.add(
                     UserCredential.builder()
@@ -108,7 +110,7 @@ public class UserPoolInitializer {
             );
         }
 
-        for (int i = 1; i <= 20; i++) {
+        for (int i = 1; i <= max_users; i++) {
 
             credentials.add(
                     UserCredential.builder()

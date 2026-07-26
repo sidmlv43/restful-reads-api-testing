@@ -1,0 +1,19 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<suite name="Critical Suite" parallel="classes" thread-count="${thread.count}">
+
+    <test name="Critical Tests">
+
+        <groups>
+            <run>
+                <include name="critical"/>
+            </run>
+        </groups>
+
+        <packages>
+            <package name="com.restfulReads.tests"/>
+        </packages>
+
+    </test>
+
+</suite>

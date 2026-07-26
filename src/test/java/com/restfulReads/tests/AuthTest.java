@@ -5,6 +5,7 @@ import com.restfulReads.annotations.ZephyrTest;
 import com.restfulReads.base.BaseTest;
 import com.restfulReads.models.requests.LoginRequest;
 import com.restfulReads.services.AuthService;
+import com.restfulReads.testgroups.TestGroups;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -23,7 +24,15 @@ public class AuthTest extends BaseTest {
 
     @Author("Riya Malviya")
     @ZephyrTest(value = "AUTH_101")
-    @Test(testName = "test user successful login")
+    @Test(
+            testName = "test user successful login",
+            groups = {
+                    TestGroups.AUTH,
+                    TestGroups.API_SEV1,
+                    TestGroups.API_REGRESSION,
+                    TestGroups.API_SMOKE
+            }
+    )
     public void testSuccessfulLogin() {
         LoginRequest loginRequest = LoginRequest.builder()
                 .email("cust1@example.com")

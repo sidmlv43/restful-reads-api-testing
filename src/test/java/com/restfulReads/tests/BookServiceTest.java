@@ -13,6 +13,7 @@ import com.restfulReads.models.requests.CreateBookRequest;
 import com.restfulReads.models.responses.Book;
 import com.restfulReads.query.BookQueryParams;
 import com.restfulReads.services.BookService;
+import com.restfulReads.testgroups.TestGroups;
 import io.restassured.response.Response;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -34,7 +35,13 @@ public class BookServiceTest extends BaseTest {
     }
 
 
-    @Test(description = "Test Get all books by query")
+    @Test(
+            testName = "Test Get all books by query",
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_SMOKE
+            }
+    )
     @Author("Siddharth Malviya")
     @ZephyrTest(value = "BOOKS_101")
     @UseUser(UserType.ADMIN)
@@ -57,7 +64,14 @@ public class BookServiceTest extends BaseTest {
     }
 
 
-    @Test(description = "Test Price filter works properly")
+    @Test(
+            description = "Test Price filter works properly",
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_SEV1,
+                    TestGroups.API_REGRESSION
+            }
+    )
     @Author("Siddharth Malviya")
     @ZephyrTest(value = "BOOKS_102")
     public void testBookQueryParamGreaterThanAndEqualsToFilterWorks() {
@@ -83,7 +97,16 @@ public class BookServiceTest extends BaseTest {
     }
 
 
-    @Test(testName = "Test Price filter works properly")
+    @Test(
+            testName = "Test Price filter works properly",
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_REGRESSION,
+                    TestGroups.API_SEV1,
+                    TestGroups.API_SMOKE
+            }
+
+    )
     @Author("Siddharth Malviya")
     @ZephyrTest(value = "BOOKS_103")
     public void testBookQueryParamLessThanAndEqualsToFilterWorks() {
@@ -105,7 +128,14 @@ public class BookServiceTest extends BaseTest {
     }
 
 
-    @Test(description = "Test Customer cannot add a new book")
+    @Test(
+            testName = "Test Customer cannot add a new book",
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_SMOKE,
+                    TestGroups.API_REGRESSION
+            }
+    )
     @Author("Siddharth Malviya")
     @ZephyrTest(value = "BOOKS_104")
     @UseUser(UserType.CUSTOMER)
@@ -120,9 +150,14 @@ public class BookServiceTest extends BaseTest {
     }
 
     @Test(
-            description = "Test Admin can add a new book",
+            testName = "Test Admin can add a new book",
             dataProviderClass = BookServiceTestDataProvider.class,
-            dataProvider = "bookDataProvider"
+            dataProvider = "bookDataProvider",
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_REGRESSION,
+                    TestGroups.API_SMOKE
+            }
     )
     @Author("Riya Malviya")
     @ZephyrTest("BOOKS_105")
@@ -146,7 +181,12 @@ public class BookServiceTest extends BaseTest {
     }
 
     @Test(
-            description = "Test Created Book can be fetched"
+            testName = "Test Created Book can be fetched",
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_REGRESSION,
+                    TestGroups.API_SMOKE
+            }
     )
     @Author("Siddharth Malviya")
     @ZephyrTest("BOOKS_110")
@@ -165,7 +205,12 @@ public class BookServiceTest extends BaseTest {
     @Author("Riya Malviya")
     @ZephyrTest(value = "BOOKS_106")
     @Test(
-            description = "Test Admin can update the created book"
+            testName = "Test Admin can update the created book",
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_SEV1,
+                    TestGroups.API_SMOKE
+            }
     )
     @UseUser(UserType.ADMIN)
     public void testAdminCanUpdateBookDetails() {
@@ -181,7 +226,14 @@ public class BookServiceTest extends BaseTest {
     @Author("Riya Malviya")
     @ZephyrTest(value = "BOOKS_107")
     @Test(
-            description = "Test Admin can delete the created book"
+            testName = "Test Admin can delete the created book",
+
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_SEV1,
+                    TestGroups.API_REGRESSION
+            }
+
     )
     @UseUser(UserType.ADMIN)
     public void testAdminCanDeleteBook() {
@@ -204,7 +256,13 @@ public class BookServiceTest extends BaseTest {
     @Author("Riya Malviya")
     @ZephyrTest(value = "BOOKS_108")
     @Test(
-            description = "Test Admin can delete the created book"
+            testName = "Test Admin can delete the created book",
+            groups = {
+                    TestGroups.API_SEV1,
+                    TestGroups.API_REGRESSION,
+                    TestGroups.BOOKS,
+
+            }
     )
     @UseUser(UserType.CUSTOMER)
     public void testCustomerCannotDeleteABook() {
@@ -221,7 +279,14 @@ public class BookServiceTest extends BaseTest {
 
     @Author("Siddharth Malviya")
     @ZephyrTest(value = "BOOKS_109")
-    @Test(description = "Anonymous User should not create a new book.")
+    @Test(
+            testName = "Anonymous User should not create a new book.",
+            groups = {
+                    TestGroups.BOOKS,
+                    TestGroups.API_SMOKE,
+                    TestGroups.API_REGRESSION
+            }
+    )
     public void anonymousUserCannotAddBookTest() {
         bookService.createBook(BookDataFactory.createBook(), FileDataFactory.getBookImages(5))
                 .then()
