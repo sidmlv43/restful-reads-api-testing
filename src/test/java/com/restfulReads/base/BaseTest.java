@@ -31,7 +31,7 @@ public class BaseTest {
 
     @BeforeTest
     public void setup() {
-//        RestAssuredConfig.enableLogging();
+        RestAssuredConfig.enableLogging();
     }
 
     @BeforeMethod

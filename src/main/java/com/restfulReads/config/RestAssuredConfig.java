@@ -1,8 +1,6 @@
 package com.restfulReads.config;
 
 import io.restassured.RestAssured;
-import io.restassured.filter.log.RequestLoggingFilter;
-import io.restassured.filter.log.ResponseLoggingFilter;
 
 public class RestAssuredConfig {
 
@@ -11,9 +9,6 @@ public class RestAssuredConfig {
     }
 
     public static void enableLogging() {
-        RestAssured.filters(
-                new RequestLoggingFilter(),
-                new ResponseLoggingFilter()
-        );
+        RestAssured.filters(new SafeLoggingFilter());
     }
 }

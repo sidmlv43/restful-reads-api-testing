@@ -27,8 +27,6 @@ import java.util.Map;
 public class BookServiceTest extends BaseTest {
 
     private BookService bookService;
-    private String createdBookId;
-
 
     @BeforeTest
     public void testSetup() {
@@ -145,17 +143,19 @@ public class BookServiceTest extends BaseTest {
                 "Id is expected not to be null or blank"
         );
 
-        this.createdBookId = book.getId();
     }
 
     @Test(
-            description = "Test Created Book can be fetched",
-            dependsOnMethods = "testAdminCanCreateBook"
+            description = "Test Created Book can be fetched"
     )
     @Author("Siddharth Malviya")
     @ZephyrTest("BOOKS_110")
     public void testGetBookById() {
-        bookService.getBookById(this.createdBookId)
+
+        String id = bookService.getBooks(BookQueryParams.builder().limit(1).build()).jsonPath().get("results[0]._id");
+        System.out.println("id: " + id);
+
+        bookService.getBookById(id)
                 .then()
                 .statusCode(200)
                 .body("data._id", notNullValue())
@@ -165,12 +165,13 @@ public class BookServiceTest extends BaseTest {
     @Author("Riya Malviya")
     @ZephyrTest(value = "BOOKS_106")
     @Test(
-            description = "Test Admin can update the created book",
-            dependsOnMethods = "testAdminCanCreateBook"
+            description = "Test Admin can update the created book"
     )
     @UseUser(UserType.ADMIN)
     public void testAdminCanUpdateBookDetails() {
-        Response updatedBookResponse = bookService.updateBook(createdBookId, Map.of("price", 44.44));
+        String id = bookService.getBooks(BookQueryParams.builder().limit(4).build()).jsonPath().get("results[3]._id");
+
+        Response updatedBookResponse = bookService.updateBook(id, Map.of("price", 44.44));
         updatedBookResponse.then()
                 .body("price", equalTo(44.44F))
                 .body("_id", notNullValue());
@@ -180,36 +181,36 @@ public class BookServiceTest extends BaseTest {
     @Author("Riya Malviya")
     @ZephyrTest(value = "BOOKS_107")
     @Test(
-            description = "Test Admin can delete the created book",
-            dependsOnMethods = "testAdminCanUpdateBookDetails"
+            description = "Test Admin can delete the created book"
     )
     @UseUser(UserType.ADMIN)
     public void testAdminCanDeleteBook() {
-        Response deletedBook = bookService.deleteBook(createdBookId);
+        String id = bookService.getBooks(BookQueryParams.builder().limit(4).build()).jsonPath().get("results[3]._id");
+
+        Response deletedBook = bookService.deleteBook(id);
         deletedBook.then()
-                .statusCode(200)
-               ;
+                .statusCode(200);
 
         bookService.
-                getBookById(createdBookId)
+                getBookById(id)
                 .then()
-                .statusCode(403)
+                .statusCode(404)
                 .body("message", equalTo("Not found"))
                 .body("details", nullValue());
 
-        // deliberate wrong status code in assertion to simulate failure
     }
 
 
     @Author("Riya Malviya")
     @ZephyrTest(value = "BOOKS_108")
     @Test(
-            description = "Test Admin can delete the created book",
-            dependsOnMethods = "testAdminCanCreateBook"
+            description = "Test Admin can delete the created book"
     )
     @UseUser(UserType.CUSTOMER)
     public void testCustomerCannotDeleteABook() {
-        Response deletedBook = bookService.deleteBook(createdBookId);
+
+        String id = bookService.getBooks(BookQueryParams.builder().limit(4).build()).jsonPath().get("results[3]._id");
+        Response deletedBook = bookService.deleteBook(id);
         deletedBook.then()
                 .statusCode(403)
                 .body("message", containsString("Forbidden"))
