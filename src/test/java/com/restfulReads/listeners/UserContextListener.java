@@ -32,6 +32,7 @@ public class UserContextListener implements IInvokedMethodListener {
 
         UserType userType = annotation.value();
         User user = UserPool.acquire(userType);
+        System.out.println("[UserContextListener] -> user acquired = " + user);
 
         SessionManager.use(user);
 

@@ -16,7 +16,7 @@ public class AuthTest extends BaseTest {
 
     private AuthService authService;
 
-    @BeforeMethod
+    @BeforeMethod(alwaysRun = true)
     public void initialize() {
         authService = new AuthService();
     }

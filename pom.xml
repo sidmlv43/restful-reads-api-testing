@@ -14,9 +14,7 @@
 
     <properties>
 
-        <project.build.sourceEncoding>
-            UTF-8
-        </project.build.sourceEncoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -39,18 +37,17 @@
 
         <extentreports.version>5.1.2</extentreports.version>
 
-        <!-- Default Runtime Properties -->
+        <!-- Runtime Defaults -->
 
         <env>uat</env>
+
         <thread-count>5</thread-count>
 
-        <groups></groups>
+        <suite.file>suites/smoke.xml</suite.file>
 
     </properties>
 
     <dependencies>
-
-        <!-- REST Assured -->
 
         <dependency>
             <groupId>io.rest-assured</groupId>
@@ -64,8 +61,6 @@
             <version>${restassured.version}</version>
         </dependency>
 
-        <!-- TestNG -->
-
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
@@ -73,15 +68,11 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Json Path -->
-
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
             <artifactId>json-path</artifactId>
             <version>${jsonpath.version}</version>
         </dependency>
-
-        <!-- Jackson -->
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -101,23 +92,17 @@
             <version>${jackson.annotations.version}</version>
         </dependency>
 
-        <!-- Lombok -->
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
         </dependency>
 
-        <!-- Faker -->
-
         <dependency>
             <groupId>com.github.javafaker</groupId>
             <artifactId>javafaker</artifactId>
             <version>${javafaker.version}</version>
         </dependency>
-
-        <!-- Reporting -->
 
         <dependency>
             <groupId>com.aventstack</groupId>
@@ -129,20 +114,24 @@
 
     <build>
 
-        <finalName>
-            restful-reads-api-automation
-        </finalName>
+        <finalName>restful-reads-api-automation</finalName>
 
         <plugins>
 
             <plugin>
+
                 <groupId>org.apache.maven.plugins</groupId>
+
                 <artifactId>maven-compiler-plugin</artifactId>
+
                 <version>3.14.0</version>
 
                 <configuration>
+
                     <source>${maven.compiler.source}</source>
+
                     <target>${maven.compiler.target}</target>
+
                 </configuration>
 
             </plugin>
@@ -157,11 +146,30 @@
 
                 <configuration>
 
-                    <groups>${groups}</groups>
+                    <suiteXmlFiles>
+
+                        <suiteXmlFile>${suite.file}</suiteXmlFile>
+
+                    </suiteXmlFiles>
+
+                    <properties>
+
+                        <property>
+                            <name>parallel</name>
+                            <value>classes</value>
+                        </property>
+
+                        <property>
+                            <name>threadcount</name>
+                            <value>${thread-count}</value>
+                        </property>
+
+                    </properties>
 
                     <systemPropertyVariables>
+
                         <env>${env}</env>
-                        <thread-count>${thread-count}</thread-count>
+
                     </systemPropertyVariables>
 
                 </configuration>
@@ -179,9 +187,9 @@
             <id>smoke</id>
 
             <properties>
-                <suite.file>
-                    suites/smoke.xml
-                </suite.file>
+
+                <suite.file>suites/smoke.xml</suite.file>
+
             </properties>
 
         </profile>
@@ -191,9 +199,9 @@
             <id>critical</id>
 
             <properties>
-                <suite.file>
-                    suites/critical.xml
-                </suite.file>
+
+                <suite.file>suites/critical.xml</suite.file>
+
             </properties>
 
         </profile>
@@ -203,21 +211,21 @@
             <id>regression</id>
 
             <properties>
-                <suite.file>
-                    suites/regression.xml
-                </suite.file>
+
+                <suite.file>suites/regression.xml</suite.file>
+
             </properties>
 
         </profile>
-
-        <!-- Environment Profiles -->
 
         <profile>
 
             <id>local</id>
 
             <properties>
+
                 <env>local</env>
+
             </properties>
 
         </profile>
@@ -227,7 +235,21 @@
             <id>uat</id>
 
             <properties>
+
                 <env>uat</env>
+
+            </properties>
+
+        </profile>
+
+        <profile>
+
+            <id>docker</id>
+
+            <properties>
+
+                <env>docker</env>
+
             </properties>
 
         </profile>

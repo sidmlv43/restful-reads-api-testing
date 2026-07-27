@@ -3,9 +3,11 @@ package com.restfulReads.session;
 import com.restfulReads.enums.UserType;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 @Builder
+@ToString
 public class User {
 
     private final String email;

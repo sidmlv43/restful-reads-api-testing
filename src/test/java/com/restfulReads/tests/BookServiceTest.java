@@ -16,6 +16,7 @@ import com.restfulReads.services.BookService;
 import com.restfulReads.testgroups.TestGroups;
 import io.restassured.response.Response;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import static org.hamcrest.Matchers.*;
@@ -29,7 +30,7 @@ public class BookServiceTest extends BaseTest {
 
     private BookService bookService;
 
-    @BeforeTest
+    @BeforeMethod(alwaysRun = true)
     public void testSetup() {
         bookService = new BookService();
     }
@@ -115,14 +116,14 @@ public class BookServiceTest extends BaseTest {
                 .page(1)
                 .limit(10)
                 .filters(
-                        Map.of("price[lte]", 40)
+                        Map.of("price[lte]", 400)
                 ).build();
 
 
 
         Response res = bookService.getBooks(queryParams);
         List<Double> prices = res.jsonPath().getList("results.price", Double.class);
-        BookAssertion.assertValueLessThanOrEqualsTo(prices, 40);
+        BookAssertion.assertValueLessThanOrEqualsTo(prices, 400);
 
 
     }

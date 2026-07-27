@@ -1,0 +1,27 @@
+# Build output — regenerated inside the container, no need to ship it in
+target/
+
+# IDE state — machine-specific, irrelevant to the build
+.idea/
+*.iml
+.vscode/
+
+# Version control metadata
+.git/
+.gitignore
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Test/report output from local runs — regenerated fresh each container run
+test-output/
+surefire-reports/
+
+# Local env files — should never be baked into an image; pass secrets
+# at `docker run` / compose instead
+.env
+*.env.local
+
+# Logs
+*.log

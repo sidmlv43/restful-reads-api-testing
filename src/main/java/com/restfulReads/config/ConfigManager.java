@@ -6,6 +6,7 @@ public class ConfigManager {
 
     private static final String ENV_KEY = "env";
     private static final String DEFAULT_ENV = "uat";
+//    private static final String DOCKER_ENV = "docker";
 
     private static final String ENV =
             System.getProperty(ENV_KEY, DEFAULT_ENV);
@@ -22,7 +23,8 @@ public class ConfigManager {
     }
 
     public static String getBaseUrl() {
-        return configLoader.get("base.url");
+        String override = System.getProperty("base.url");
+        return override != null ? override : configLoader.get("base.url");
     }
 
     public static int getTimeout() {

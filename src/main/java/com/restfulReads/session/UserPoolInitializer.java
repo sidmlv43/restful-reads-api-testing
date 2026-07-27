@@ -70,9 +70,10 @@ public class UserPoolInitializer {
             } catch (Exception e) {
 
                 System.err.printf(
-                        "Failed to authenticate -> %s (%s)%n",
+                        "Failed to authenticate -> %s (%s)%n exception-> %s",
                         cred.getEmail(),
-                        cred.getUserType()
+                        cred.getUserType(),
+                        e
                 );
 
                 throw e;

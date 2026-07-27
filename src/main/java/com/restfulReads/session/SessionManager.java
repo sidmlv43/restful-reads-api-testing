@@ -20,6 +20,7 @@ public final class SessionManager {
 
     public static String getToken() {
         User currentUser = CURRENT_USER.get();
+        System.out.println("[Session Manager] -> current-user = " + currentUser);
         return currentUser == null ? null : currentUser.getToken();
     }
 

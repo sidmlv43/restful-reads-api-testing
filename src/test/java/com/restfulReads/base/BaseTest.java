@@ -23,18 +23,18 @@ public class BaseTest {
     protected CartService cartService;
     protected BookService bookService;
 
-    @BeforeSuite
+    @BeforeSuite(alwaysRun = true)
     public void initializeUsers() {
         System.out.println("BeforeSuite Executed");
         UserPoolInitializer.initialize();
     }
 
-    @BeforeTest
+    @BeforeTest(alwaysRun = true)
     public void setup() {
         RestAssuredConfig.enableLogging();
     }
 
-    @BeforeMethod
+    @BeforeMethod(alwaysRun = true)
     public void initServices() {
         cartService = new CartService();
         bookService = new BookService();
