@@ -1,10 +1,10 @@
 # Restful Reads — REST Assured API Automation Framework Template
 
-A Java + REST Assured + TestNG API automation framework built for the Restful Reads application. The framework includes role-based authentication, user-pool based session management, thread-safe parallel execution, JSON schema validation, data-driven testing with Java Faker, retry handling for flaky tests, request/response logging, and Extent Reports for reporting.
+A Java + REST Assured + TestNG API automation framework built for the Restful Reads application. The framework includes role-based authentication, user-pool based session management, thread-safe parallel execution, JSON schema validation, data-driven testing with Java Faker, retry handling for flaky tests, request/response logging, Extent Reports, Maven profile-based execution, and Dockerized test execution.
 
 I built this to actually learn how a senior SDET puts a framework together, not to write a pile of tests that hit endpoints and check status codes. I'm about a year into my career as an automation engineer, and this project is where I push past what my day job requires.
 
-If you're looking for a REST Assured + TestNG framework template with role-based authentication, thread-safe session handling, user pooling, parallel execution support, and Extent reporting already wired up, feel free to fork this and adapt it. The sections below walk through how each piece works and why it's built that way, so you're not just copying code you don't understand.
+If you're looking for a REST Assured + TestNG framework template with role-based authentication, user isolation, parallel execution, reporting, Maven profiles, and Docker support already wired up, feel free to fork this and adapt it. The sections below explain not only what each piece does, but why it exists.
 
 ---
 
@@ -40,17 +40,33 @@ If you're looking for a REST Assured + TestNG framework template with role-based
 
 ✅ User Isolation During Parallel Execution
 
+✅ Maven Profile-Based Execution
+
+✅ Smoke / Critical / Regression Test Suites
+
+✅ Dockerized Test Execution
+
+✅ Environment-Specific Configuration
+
 ---
 
 ## Why this exists
 
-Most tutorial-following frameworks I'd built before this had one big flaw: everything worked as long as you ran one test at a time. The moment you tried running tests in parallel, or testing what happens when a customer, not an admin, hits a protected endpoint, the whole thing fell apart.
+Most tutorial-following frameworks I'd built before this had one big flaw: everything worked as long as you ran one test at a time.
 
-This project exists to fix that properly and to document each decision as I made it, including the ones I got wrong the first time.
+The moment you tried running tests in parallel, or validating behavior across multiple user roles, the architecture started showing cracks.
 
-As the framework grew, I discovered another problem. Running multiple user journeys in parallel meant different tests were competing for the same customer account. Cart state, addresses, and future order data all became shared state that could make tests influence one another.
+This framework exists to solve those problems properly and to document the decisions made along the way.
 
-That problem led to the introduction of a UserPool, which is currently one of the most important architectural pieces of the framework.
+As the framework evolved, another challenge appeared.
+
+Running multiple user journeys in parallel meant several tests were competing for the same customer account.
+
+Cart state, addresses, ratings, and future order data all became shared state.
+
+That led to random failures, difficult debugging sessions, and tests influencing one another.
+
+The introduction of a UserPool solved that problem and became one of the most important architectural decisions in the framework.
 
 ---
 
@@ -65,6 +81,7 @@ That problem led to the introduction of a UserPool, which is currently one of th
 - Extent Reports
 - Java Faker
 - JSON Schema Validator
+- Docker
 
 ---
 
@@ -115,60 +132,71 @@ src/test/java/com/restfulReads
 ├── assertions
 ├── base
 ├── data
+│   ├── BookDataFactory
+│   └── FileDataFactory
+│
 ├── dataproviders
+│
 ├── listeners
 │   ├── UserContextListener
 │   ├── ExtentTestListener
 │   ├── RetryAnalyzer
 │   └── RetryTransformer
 │
+├── testgroups
+│   └── TestGroups
+│
 └── tests
+
+
+suites
+├── smoke.xml
+├── critical.xml
+└── regression.xml
 ```
 
 ---
 
 ## Role-based authentication, session management, and user pooling
 
-This is the part I spent the most time getting right, and it's the piece I'd point to first if you're using this project as a reference for your own framework.
+This is currently the most important architectural piece of the framework.
 
-Early versions of the framework authenticated a single Admin user and a single Customer user at suite startup. Those tokens were stored and reused throughout execution.
+Early versions of the framework authenticated a single Admin user and a single Customer user at suite startup and reused those tokens for every test.
 
-That worked perfectly fine for CRUD-style API tests.
+That worked for basic CRUD testing.
 
-It broke down once I started thinking about user journeys.
-
-Consider:
+It failed once user-specific journeys entered the picture:
 
 - Cart workflows
 - Checkout workflows
-- Address management
 - Order history
+- Address management
 - Product ratings
 
-Using a single shared customer account means every test is modifying the same user state.
+Using a shared account meant every test was modifying the same user state.
 
-One test adds items to the cart.
+To solve this, the framework introduced a UserPool.
 
-Another test expects an empty cart.
+At suite startup, the framework dynamically provisions user pools based on the configured thread count.
 
-A third test creates an address.
+Rather than authenticating a fixed number of users every run, only the users required for execution plus a small buffer are authenticated.
 
-Now you've got debugging sessions that feel more like archaeology than testing.
+Example:
 
-To solve this, I introduced a UserPool.
+```text
+thread-count = 4
 
-At suite startup, the framework logs in:
+Admin Pool     = 6 Users
+Customer Pool  = 6 Users
+```
 
-- 20 Admin users
-- 20 Customer users
-
-and stores them in separate pools.
-
-Internally, the implementation uses:
+Internally:
 
 ```java
 Map<UserType, BlockingQueue<User>>
 ```
+
+is used to maintain role-specific pools.
 
 Each authenticated user contains:
 
@@ -179,7 +207,7 @@ token
 userType
 ```
 
-Tests still declare permissions using the same annotation:
+Tests declare required permissions using:
 
 ```java
 @Test
@@ -189,7 +217,7 @@ public void customerCanAddItemsToCart() {
 }
 ```
 
-The execution flow now looks like this:
+Execution flow:
 
 ```text
 @UseUser(CUSTOMER)
@@ -213,50 +241,34 @@ Test Complete
 UserPool.release(user)
 ```
 
-A user can only belong to one active test at a time.
-
-This dramatically reduces the chance of parallel tests interfering with one another through:
-
-- Cart state
-- Addresses
-- Orders
-- Ratings
-- User-specific resources
-
-It also allows the framework to scale far beyond the original "one admin, one customer" design without changing test code.
+This provides dramatically better isolation for parallel execution.
 
 ---
 
 ## SessionManager
 
-Session state is managed through:
+Session state is stored as:
 
 ```java
 ThreadLocal<User>
 ```
 
-instead of:
+rather than:
 
 ```java
 ThreadLocal<String>
 ```
 
-The active session now stores the entire authenticated user rather than only a JWT token.
-
-That gives the framework access to:
+The currently executing thread has access to:
 
 - Email
 - Password
-- Token
-- UserType
+- JWT Token
+- User Type
 
-for the currently executing thread.
+This became necessary once the framework evolved from token sharing to user leasing.
 
-The switch became necessary once UserPool-based execution was introduced.
-
-Without ThreadLocal, parallel execution would leak session data between worker threads.
-
-This isn't defensive over-engineering anymore. It's load-bearing infrastructure.
+Without ThreadLocal, parallel execution would leak user sessions across threads.
 
 ---
 
@@ -267,11 +279,10 @@ This isn't defensive over-engineering anymore. It's load-bearing infrastructure.
 - Base URI configuration
 - Content-Type configuration
 - Authorization header injection
-- Request/response logging
+- Request logging
+- Response logging
 
-Every service class extends it, which means those concerns only need to be implemented once.
-
-The framework currently contains:
+Every service extends `BaseService`, ensuring common concerns are implemented once.
 
 ### Implemented
 
@@ -285,17 +296,13 @@ The framework currently contains:
 - RatingService
 - UserService
 
-The endpoints have already been mapped in constants. Some service implementations are still being built out.
-
-Listed honestly here rather than implied as complete.
-
 ---
 
 ## Request and response DTOs
 
-The framework uses dedicated DTOs for requests and responses.
+Requests and responses are modeled separately.
 
-Example request object:
+Example request:
 
 ```java
 CreateBookRequest.builder()
@@ -305,9 +312,7 @@ CreateBookRequest.builder()
         .build();
 ```
 
-Requests are automatically serialized into JSON using Jackson.
-
-Responses are mapped back into Java objects:
+Example response mapping:
 
 ```java
 Book book =
@@ -325,20 +330,19 @@ Benefits:
 
 ## Query builder support
 
-Book search requests use a builder pattern.
+Book filtering uses a builder pattern.
 
 Example:
 
 ```java
-BookQueryParams params =
-        BookQueryParams.builder()
-                .author("Rick Riordan")
-                .page(1)
-                .limit(10)
-                .build();
+BookQueryParams.builder()
+        .author("Rick Riordan")
+        .page(1)
+        .limit(10)
+        .build();
 ```
 
-Advanced filtering is also supported:
+Advanced filtering:
 
 ```java
 BookQueryParams.builder()
@@ -360,11 +364,9 @@ Supported operators:
 
 ---
 
-## Test data with Java Faker
+## Test data generation
 
-Faker generates realistic book payloads through `BookDataFactory`, so tests aren't full of hardcoded titles, authors, and prices.
-
-This is also what powers the data-driven tests via TestNG Data Providers.
+Java Faker powers all dynamic test data generation.
 
 Example:
 
@@ -373,21 +375,19 @@ CreateBookRequest request =
         BookDataFactory.createBook();
 ```
 
-Known gap:
+Multipart uploads are supported through:
 
-There's still no framework-level cleanup mechanism for resources created during execution.
+```java
+FileDataFactory
+```
 
-If a test creates a book, nothing currently guarantees it gets deleted.
-
-My plan is to introduce a framework-managed test resource registry that tracks created entities and automatically cleans them up after execution.
-
-That feels like a framework problem, not a test-writing problem.
+which provides reusable image test files for upload scenarios.
 
 ---
 
 ## Data-driven testing
 
-The framework supports TestNG Data Providers.
+Data Providers allow a single test implementation to execute against multiple datasets.
 
 Example:
 
@@ -404,113 +404,88 @@ public void testAdminCanCreateBook(
 }
 ```
 
-This allows a single test implementation to execute against multiple datasets without duplicating code.
-
 ---
 
 ## JSON schema validation
 
-Responses are validated against schemas stored under:
+Response schemas are maintained under:
 
 ```text
 src/test/resources/schemas
 ```
 
-using:
+Validation uses:
 
 ```java
 matchesJsonSchemaInClasspath(...)
 ```
 
-This catches API contract regressions separately from business assertions.
-
-Examples:
+This helps detect:
 
 - Missing fields
-- Incorrect data types
+- Type changes
+- Contract regressions
 - Unexpected response structures
 
 ---
 
 ## Reporting with Extent Reports
 
-Extent Reports generates an interactive HTML report:
+Extent Reports generates:
 
 ```text
 test-output/ExtentReport.html
 ```
 
-The framework captures:
+Each report contains:
 
 - Pass / Fail / Skip status
+- Request logs
+- Response logs
 - Stack traces
 - Categories
 - Author metadata
 - Zephyr references
-- Request logs
-- Response logs
 
-A custom REST Assured filter (`ExtentRestAssuredFilter`) automatically writes request and response information directly into the report.
-
-So when a test fails, you can immediately see:
-
-```text
-HTTP Method
-URI
-Request Body
-Response Status
-Response Body
-```
-
-without rerunning the test.
+A custom REST Assured filter automatically logs API traffic without requiring additional test code.
 
 ---
 
 ## Test metadata
 
-The framework supports custom metadata annotations:
+Custom metadata annotations:
 
-### @Author
+### Author
 
 ```java
-@Test
 @Author("Siddharth Malviya")
-public void createBookTest() {
-
-}
 ```
 
-### @ZephyrTest
+### Zephyr Test
 
 ```java
-@Test
 @ZephyrTest("BOOKS_101")
-public void createBookTest() {
-
-}
 ```
 
-These are currently used for reporting.
-
-The longer-term goal is to make integration with tools like Zephyr, Jira, or Azure Test Plans easier if needed.
+These currently provide reporting metadata while laying the groundwork for future test-management integrations.
 
 ---
 
-## Retry handling for flaky tests
+## Retry handling
 
-Every test automatically receives retry support through:
-
-```java
-RetryAnalyzer
-```
-
-which is applied globally through:
+Retry execution is implemented globally through:
 
 ```java
 RetryTransformer
 ```
 
-The current retry count is configurable through:
+and:
+
+```java
+RetryAnalyzer
+```
+
+The retry count is configurable:
 
 ```properties
 retry_count=3
@@ -522,93 +497,275 @@ or:
 mvn test -Dretry_count=5
 ```
 
-Retries appear directly in the Extent Report.
-
-To validate the implementation, I intentionally broke passing tests and confirmed they retried the expected number of times before failing.
-
-One thing I'm still evaluating:
-
-Retries currently apply to every failure.
-
-That's convenient, but it's not always useful.
-
-A genuine assertion bug generally doesn't become less wrong on the third attempt.
-
-I may eventually restrict retries to transient failures only.
+Retries remain visible in Extent Reports to prevent flaky tests from silently disappearing behind a passing result.
 
 ---
 
 ## Parallel execution
 
-The suite runs using:
+Parallel execution is supported through TestNG.
 
-```xml
-parallel="classes"
-```
-
-with multiple worker threads.
-
-Thread safety currently relies on:
+Thread safety depends on:
 
 ```java
 ThreadLocal<User>
 ```
 
-for user sessions and:
+and:
 
 ```java
 ThreadLocal<ExtentTest>
 ```
 
-for reporting.
+Without both mechanisms, report entries and user sessions would become corrupted under parallel execution.
 
-Without those two mechanisms, parallel execution would quickly start corrupting user state and report entries.
+Parallelism can be configured through Maven:
+
+```bash
+mvn test -Pregression -Dthread-count=10
+```
+
+---
+
+## Maven profiles and test suites
+
+Three execution suites currently exist:
+
+```text
+suites/
+├── smoke.xml
+├── critical.xml
+└── regression.xml
+```
+
+### Smoke
+
+```bash
+mvn test -Psmoke
+```
+
+### Critical
+
+```bash
+mvn test -Pcritical
+```
+
+### Regression
+
+```bash
+mvn test -Pregression
+```
+
+This allows CI pipelines to run lightweight validation suites separately from full regression coverage.
 
 ---
 
 ## Environment configuration
 
-`ConfigManager` reads:
+Environment-specific properties are supported.
 
-```bash
--Denv=uat
-```
-
-and loads:
+Current environments:
 
 ```text
 application-uat.properties
+application-docker.properties
 ```
 
-Configuration values such as:
+Examples:
+
+### UAT
+
+```bash
+mvn test -Psmoke -Denv=uat
+```
+
+### Docker
+
+```bash
+mvn test -Psmoke -Denv=docker
+```
+
+The framework uses these property files to manage:
 
 - Base URL
-- Timeout values
-- Retry count
+- Retries
+- Timeouts
+- Environment-specific configuration
 
-are environment-specific rather than hardcoded.
+---
+
+## Docker support
+
+The framework can be executed entirely inside Docker.
+
+Benefits:
+
+- Consistent execution environments
+- Easier CI/CD integration
+- Faster onboarding
+- Elimination of local machine configuration differences
+
+### Build the image
+
+```bash
+docker build -t restful-reads-tests .
+```
+
+### Execute default command
+
+```bash
+docker run --rm restful-reads-tests
+```
+
+Equivalent to:
+
+```bash
+mvn test -Psmoke,uat
+```
+
+---
+
+### Execute regression suite
+
+```bash
+docker run --rm \
+    -e SUITE=regression \
+    -e ENVIRONMENT=docker \
+    -e THREAD_COUNT=10 \
+    restful-reads-tests
+```
+
+Equivalent to:
+
+```bash
+mvn test \
+    -Pregression,docker \
+    -Dthread-count=10
+```
+
+---
+
+### Execute critical suite
+
+```bash
+docker run --rm \
+    -e SUITE=critical \
+    -e ENVIRONMENT=docker \
+    -e THREAD_COUNT=4 \
+    restful-reads-tests
+```
+
+Equivalent to:
+
+```bash
+mvn test \
+    -Pcritical,docker \
+    -Dthread-count=4
+```
+
+---
+
+### Execute smoke suite
+
+```bash
+docker run --rm \
+    -e SUITE=smoke \
+    -e ENVIRONMENT=docker \
+    restful-reads-tests
+```
+
+---
+
+## Running against a dockerized backend
+
+When running inside Docker, the framework communicates with the backend using Docker networking.
+
+Example:
+
+```properties
+base.url=http://restful-reads-api:5000
+```
+
+instead of:
+
+```properties
+base.url=http://localhost:5000
+```
+
+because containers communicate through service names rather than localhost.
+
+Example workflow:
+
+### Start backend
+
+```bash
+docker compose up -d
+```
+
+Verify:
+
+```bash
+curl http://localhost:5000
+```
+
+### Execute framework
+
+```bash
+docker run --rm \
+    --network restful-reads_default \
+    -e SUITE=regression \
+    -e ENVIRONMENT=docker \
+    -e THREAD_COUNT=10 \
+    restful-reads-tests
+```
 
 ---
 
 ## Running the suite
 
+### Smoke
+
 ```bash
-mvn test -Denv=uat
+mvn test -Psmoke
 ```
 
-If no environment is provided:
+### Critical
 
-```text
-uat
+```bash
+mvn test -Pcritical
 ```
 
-is used as the default.
+### Regression
+
+```bash
+mvn test -Pregression
+```
+
+### Custom thread count
+
+```bash
+mvn test -Pregression -Dthread-count=10
+```
+
+### Docker environment
+
+```bash
+mvn test -Pregression -Denv=docker
+```
+
+### Full example
+
+```bash
+mvn test \
+    -Pregression,docker \
+    -Dthread-count=10
+```
 
 ---
 
 ## Using this as a template
 
-If you're adapting this framework for your own API, the most reusable pieces are:
+The most reusable pieces are:
 
 - BaseService
 - UserPool
@@ -619,18 +776,19 @@ If you're adapting this framework for your own API, the most reusable pieces are
 - Extent Reporting
 - Request/Response Logging
 - DTO Architecture
+- Maven Profile Structure
 
-The Book-specific pieces are simply example domain implementations that can be swapped out for your own services and models.
+Book-specific services and models are simply domain examples that can be replaced with your own.
 
 ---
 
 ## What's not here yet
 
-- Docker support
-- Jenkins / CI integration
-- Framework-managed test data provisioning
-- Automated test-data cleanup
-- Database verification layer
+- GitHub Actions integration
+- Jenkins pipeline integration
+- Docker Compose orchestration for backend + automation
+- Framework-managed test data cleanup
+- MongoDB verification layer
 - Contract testing enhancements
 - Checkout journey automation
 - Order journey automation
